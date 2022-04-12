@@ -1,0 +1,41 @@
+---
+- name: Load distro variables
+  ansible.builtin.include_vars: '{{ ansible_distribution | lower }}.yaml'
+
+- name: Execute distro-specific tasks
+  ansible.builtin.include_tasks: '{{ ansible_distribution | lower }}.yaml'
+
+- block:
+    - name: Create directories
+      ansible.builtin.file:
+        path: '{{ pmm_container_env_file | dirname }}'
+        state: directory
+        owner: root
+        group: root
+        mode: u=rwX,g=rX,o=X
+
+    - name: Manage the container environment file
+      ansible.builtin.template:
+        src: env-pmm-server.j2
+        dest: '{{ pmm_container_env_file }}'
+        owner: root
+        group: root
+        mode: u=rw,a=r
+      register: pmm_container_manage_env_file
+  become: true
+  tags:
+    - sudo
+
+- name: Configure the containerisation enviroment
+  ansible.builtin.include_role:
+    name: container
+  vars:
+    container_env_file: '{{ pmm_container_env_file }}'
+    container_force_reload: '{{ pmm_container_manage_env_file.changed|bool }}'
+    container_image: '{{ pmm_container_image_repo }}/pmm-server:{{ pmm_version }}'
+    container_port: '{{ pmm_container_port }}'
+    container_service:
+      name: pmm-server
+      extra_args: ' -p 8443:443/tcp --volume=pmm-data:/srv:Z '
+    container_volume: '{{ pmm_container_volume }}'
+...

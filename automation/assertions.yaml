@@ -1,0 +1,16 @@
+---
+- name: Run preflight checks
+  hosts: monitors
+  gather_facts: false
+  pre_tasks:
+    - name: Gather hardware information
+      ansible.builtin.setup:
+        gather_subset: hardware
+      tags:
+        - always
+
+  roles:
+    - role: preflight
+      tags:
+        - always
+...

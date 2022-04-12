@@ -1,0 +1,13 @@
+[defaults]
+become_method = sudo
+inventory = {{ .Inventory }}
+host_key_checking = false
+callback_whitelist = profile_tasks
+nocolor = true
+force_color = false
+nocows = true
+retry_files_enabled = false
+log_path = {{ .LogPath }}
+
+[ssh_connection]
+pipelining = True

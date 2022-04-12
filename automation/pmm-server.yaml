@@ -1,0 +1,15 @@
+---
+- name: Run preflight checks
+  ansible.builtin.import_playbook: assertions.yaml
+  tags:
+    - always
+
+- name: Setup PMM server
+  hosts: monitors
+  gather_facts: false
+  tags:
+    - pmm-server
+
+  roles:
+    - role: pmm
+...

@@ -1,0 +1,52 @@
+---
+all:
+  vars:
+    pmm_version: '2'
+  hosts:
+    {{ .Config.Monitor }}:
+      ansible_host: localhost
+      ansible_connection: local
+      container_engine: podman
+  children:
+    dbservers:
+      children:
+        azure:
+        cloudsql:
+        mongodb:
+        mysql:
+        postgresql:
+        rds:
+    ha:
+      children:
+        haproxy:
+        proxysql:
+    azure:
+      hosts:
+      vars:
+    cloudsql:
+      hosts:
+      vars:
+    haproxy:
+      hosts:
+      vars:
+    mongodb:
+      hosts:
+      vars:
+    monitors:
+      hosts:
+        {{ .Config.Monitor }}:
+      vars:
+    mysql:
+      hosts:
+      vars:
+    postgresql:
+      hosts:
+      vars:
+    proxysql:
+      hosts:
+      vars:
+    rds:
+      hosts:
+      vars:
+...
+

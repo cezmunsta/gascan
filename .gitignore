@@ -1,0 +1,5 @@
+.env
+automation/inventory.yaml
+build
+bundle.tgz
+venv

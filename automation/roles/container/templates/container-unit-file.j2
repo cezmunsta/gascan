@@ -1,0 +1,21 @@
+[Unit]
+Description={{ container_service.name | mandatory }}
+Wants=network-online.target
+After=network-online.target
+After=nss-user-lookup.target nss-lookup.target
+After=time-sync.target
+
+[Service]
+Type=simple
+User={{ container_service.user | default(ansible_env.SUDO_UID) }}
+Group={{ container_service.group | default(ansible_env.SUDO_GID) }}
+SuccessExitStatus=0 125
+ExecStartPre=/usr/bin/bash -c '/usr/bin/podman stop -t 10 {{ container_service.name }} || true; /usr/bin/podman rm -f {{ container_service.name }} || true'
+ExecStart=/usr/bin/podman run --rm --name={{ container_service.name }} --env-file="{{ container_env_file }}" {{ '--health-cmd=none' if container_rootless else '' }} {{ container_service.extra_args | default('') }} {{ container_image }}
+ExecStop=/usr/bin/podman stop -t 10 {{ container_service.name }}
+ExecStopPost=/usr/bin/podman stop -t 10 {{ container_service.name }}
+Restart={{ container_service.restart | default('on-failure') }}
+RestartSec={{ container_service.restart_sec | default(20) }}
+
+[Install]
+WantedBy=multi-user.target

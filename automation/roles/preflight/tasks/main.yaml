@@ -1,0 +1,27 @@
+---
+- name: Check distro variant and version
+  ansible.builtin.assert:
+    that: ((ansible_distribution|lower in preflight_distros) and
+           (ansible_distribution_major_version|int in preflight_distro_versions[ansible_distribution|lower]))
+    fail_msg: 'Unsupported OS distribution: {{ ansible_distribution }} {{ ansible_distribution_major_version }}'
+    success_msg: 'OS distribution OK'
+
+- block:
+    - name: Check sudo privileges
+      ansible.builtin.command: /bin/true
+      become: true
+      changed_when: false
+      ignore_errors: true
+      register: preflight_sudo_check
+      tags:
+        - sudo
+
+
+    - name: Verify sudo privileges
+      ansible.builtin.assert:
+        that: preflight_sudo_check.rc is defined and preflight_sudo_check.rc|int == 0
+        fail_msg: 'A password is required for sudo access'
+        success_msg: 'Check for sudo OK'
+  tags:
+    - sudo
+...

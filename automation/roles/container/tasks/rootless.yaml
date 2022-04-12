@@ -1,0 +1,88 @@
+---
+- block:
+    - name: Install shadow-utils
+      ansible.builtin.package:
+        name: shadow-utils
+        state: present
+
+    - name: Set user.max_user_namespaces
+      ansible.builtin.sysctl:
+        name: user.max_user_namespaces
+        value: '{{ container_namespace_max_size|string }}'
+
+    - name: Gather environment settings
+      ansible.builtin.setup:
+        filter: ansible_env
+        gather_subset: min
+      when: ansible_env.SUDO_USER is undefined
+
+    - block:
+        - name: Check for existing module
+          ansible.builtin.shell:
+            cmd: semodule -l | grep -Eq '^fusefs_sock_file[[:space:]]{{ container_semodule_version }}$'
+          changed_when: false
+          ignore_errors: true
+          register: container_semodule_check
+
+        - block:
+            - name: Create fusefs_sock_file.te
+              ansible.builtin.template:
+                src: fusefs_sock_file.te.j2
+                dest: /tmp/fusefs_sock_file.te
+
+            - name: Generate fusefs_sock_file.mod
+              ansible.builtin.command:
+                cmd: checkmodule -M -m -o fusefs_sock_file.mod fusefs_sock_file.te
+              args:
+                chdir: /tmp
+
+            - name: Generate fusefs_sock_file.pp
+              ansible.builtin.command:
+                cmd: semodule_package -m fusefs_sock_file.mod -o fusefs_sock_file.pp
+              args:
+                chdir: /tmp
+
+            - name: Install fusefs_sock_file.pp
+              ansible.builtin.command:
+                cmd: semodule -i fusefs_sock_file.pp
+              args:
+                chdir: /tmp
+          when: container_semodule_check.rc is defined and container_semodule_check.rc|int != 0
+
+        - name: Cleanup files
+          ansible.builtin.file:
+            path: '{{ item }}'
+            state: absent
+          loop:
+            - /tmp/fusefs_sock_file.te
+            - /tmp/fusefs_sock_file.mod
+            - /tmp/fusefs_sock_file.pp
+      when: ansible_selinux.status is defined and ansible_selinux.status == 'enabled'
+  become: true
+  tags:
+    - sudo
+
+- name: Check user mappings
+  ansible.builtin.command: podman image ls -q
+  changed_when: false
+  ignore_errors: true
+  register: container_rootless_mapping_check
+
+- name: Configure user mappings
+  ansible.builtin.copy:
+    content: '{{ item.user }}:{{ container_namespace_offset }}:{{ container_namespace_size }}'
+    dest: '/etc/{{ item.path }}'
+    owner: root
+    group: root
+    mode: u=rw,a=r
+  loop:
+    - user: '{{ ansible_env.SUDO_USER | mandatory }}'
+      path: subuid
+    - user: '{{ ansible_env.SUDO_USER | mandatory }}'
+      path: subgid
+  become: true
+  when: (container_rootless_mapping_check.stderr is defined
+         and 'cannot find mappings for user' in container_rootless_mapping_check.stderr)
+  tags:
+    - sudo
+...

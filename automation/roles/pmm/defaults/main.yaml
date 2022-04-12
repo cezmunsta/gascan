@@ -1,0 +1,18 @@
+---
+pmm_container_env:
+  DATA_RETENTION: 720h
+  DISABLE_TELEMETRY: 0
+  DISABLE_UPDATES: 1
+  ENABLE_ALERTING: 1
+  ENABLE_AZUREDISCOVER: '{{ ("azure" in groups and groups["azure"] | length > 0) | int }}'
+  ENABLE_BACKUP_MANAGEMENT: 0
+  ENABLE_DBAAS: 0
+  METRICS_RESOLUTION_HR: 5s
+  METRICS_RESOLUTION_LR: 1h
+  METRICS_RESOLUTION_MR: 5m
+pmm_container_env_file: /usr/local/percona/.pmm-server
+pmm_container_image_repo: '{{ "docker.io/perconalab" if "docker.io/perconalab" if pmm_version|intersect(["dev-latest"]) else "docker.io/percona" }}'
+pmm_container_port: 8443
+pmm_container_volume: pmm-data
+pmm_version: latest
+...
