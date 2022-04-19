@@ -17,9 +17,11 @@
       when: ansible_env.SUDO_USER is undefined
 
     - block:
+        # TODO: Review to use 'semodule -l -m | grep -Eq '^fusefs_sock_file sha256:<insert hash>$'
+        #       once policycoreutils is at least version 2.9-17
         - name: Check for existing module
           ansible.builtin.shell:
-            cmd: semodule -l | grep -Eq '^fusefs_sock_file[[:space:]]{{ container_semodule_version }}$'
+            cmd: semodule -l | grep -Eq '^fusefs_sock_file'
           changed_when: false
           ignore_errors: true
           register: container_semodule_check
