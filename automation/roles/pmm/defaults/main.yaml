@@ -11,6 +11,7 @@ pmm_container_env:
   METRICS_RESOLUTION_LR: 1h
   METRICS_RESOLUTION_MR: 5m
 pmm_container_env_file: /usr/local/percona/.pmm-server
+pmm_container_extra_args: ' --ulimit=host -p 8443:443/tcp --volume=pmm-data:/srv:Z '
 pmm_container_image_repo: '{{ "docker.io/perconalab" if "docker.io/perconalab" if pmm_version|intersect(["dev-latest"]) else "docker.io/percona" }}'
 pmm_container_port: 8443
 pmm_container_volume: pmm-data

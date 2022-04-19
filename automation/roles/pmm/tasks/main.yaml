@@ -36,6 +36,6 @@
     container_port: '{{ pmm_container_port }}'
     container_service:
       name: pmm-server
-      extra_args: ' -p 8443:443/tcp --volume=pmm-data:/srv:Z '
+      extra_args: '{{ pmm_container_extra_args }}'
     container_volume: '{{ pmm_container_volume }}'
 ...
