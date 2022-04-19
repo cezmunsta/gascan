@@ -15,24 +15,12 @@ const (
 
 // Log provides simple logging functionality
 type Log struct {
-	Level uint
+	Level  uint
+	Prefix string
 }
 
 func (l *Log) log(lvl uint, msg string, args ...interface{}) bool {
-	prefix := ""
-
-	switch lvl {
-	case debugLevel:
-		prefix = "DEBUG"
-	case infoLevel:
-		prefix = "INFO"
-	case warningLevel:
-		prefix = "WARNING"
-	case errorLevel:
-		prefix = "ERROR"
-	case fatalLevel:
-		prefix = "FATAL"
-	}
+	prefix := l.Prefix
 
 	if prefix != "" {
 		prefix += ": "

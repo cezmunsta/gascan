@@ -29,22 +29,26 @@
               ansible.builtin.template:
                 src: fusefs_sock_file.te.j2
                 dest: /tmp/fusefs_sock_file.te
+                mode: u=rw,a=r
 
             - name: Generate fusefs_sock_file.mod
               ansible.builtin.command:
                 cmd: checkmodule -M -m -o fusefs_sock_file.mod fusefs_sock_file.te
+              changed_when: false
               args:
                 chdir: /tmp
 
             - name: Generate fusefs_sock_file.pp
               ansible.builtin.command:
                 cmd: semodule_package -m fusefs_sock_file.mod -o fusefs_sock_file.pp
+              changed_when: false
               args:
                 chdir: /tmp
 
             - name: Install fusefs_sock_file.pp
               ansible.builtin.command:
                 cmd: semodule -i fusefs_sock_file.pp
+              changed_when: false
               args:
                 chdir: /tmp
           when: container_semodule_check.rc is defined and container_semodule_check.rc|int != 0

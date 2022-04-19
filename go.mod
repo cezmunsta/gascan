@@ -1,3 +1,3 @@
-module gitlab.int.percona.com/ceri.williams/pp-play
+module gascan
 
 go 1.17
