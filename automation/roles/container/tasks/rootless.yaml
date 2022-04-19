@@ -19,7 +19,7 @@
     - block:
         - name: Check for existing module
           ansible.builtin.shell:
-            cmd: semodule -l -m | grep -Eq '^fusefs_sock_file sha256:a371121d6c88c0436a9e6c46e75ab9d24bde488555d97a9df0dab1fd2027bc06$'
+            cmd: semodule -l | grep -Eq '^fusefs_sock_file[[:space:]]{{ container_semodule_version }}$'
           changed_when: false
           ignore_errors: true
           register: container_semodule_check
