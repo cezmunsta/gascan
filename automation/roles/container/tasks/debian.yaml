@@ -1,1 +1,9 @@
-centos.yaml
+---
+- name: Install packages
+  ansible.builtin.package:
+    name: '{{ container_packages }}'
+    state: present
+  become: true
+  tags:
+    - sudo
+...

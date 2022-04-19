@@ -1,1 +1,4 @@
-centos.yaml
+---
+container_packages:
+  - '{{ container_engine }}'
+...
