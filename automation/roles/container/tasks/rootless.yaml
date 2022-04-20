@@ -1,8 +1,8 @@
 ---
 - block:
-    - name: Install shadow-utils
+    - name: Install namespace packages
       ansible.builtin.package:
-        name: shadow-utils
+        name: '{{ container_namespace_packages }}'
         state: present
 
     - name: Set user.max_user_namespaces

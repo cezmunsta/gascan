@@ -12,8 +12,8 @@ preflight_distro_versions:
     - 7
     - 8
   debian:
-    - 10
+#    - 10
     - 11
-  ubuntu:
-    - 20
+#  ubuntu:
+#    - 20
 ...
