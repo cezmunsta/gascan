@@ -30,7 +30,76 @@ Usage of ./build/linux/amd64/gascan:
         Run the test play (ping)
 ```
 
+### System requirements
+
+Almost all of the functionality is built in to the binary and so the requirement to use the tool are kept to a minimum. However, depending upon the Linux distribution that you are deploying on it may be necessary to ensure that some requirements are met.
+
+#### Operating systems
+
+The following operating systems are supported:
+* CentOS 7
+* CentOS Stream 8
+* CentOS Stream 9
+* Red Hat Enterprise Linux 8
+* Debian 11
+
+#### Package updates
+
+As a best practice, ensure that all system packages are up-to-date and the server has been rebooted if the kernel was updated. It may be possible to have success without following this, however depending upon the existing package versions and the options chosen your mileage may vary. At a bare minimum, ensuring that you are running the the latest available kernel for your distribution will help avoid the most common issues.
+
+#### Python versions
+
+The following versions of Python are supported:
+* Python 3.8
+* Python 3.9
+
+Whilst almost all types of installation of the supported Linux distributions will have Python already available, it may be necessary to either install a specific version or some additional packages.
+
+##### CentOS 7
+
+Install the software compatibility library (SCL) repository to gain access to the Red Hat packages for Python 3.8:
+```sh
+$ sudo yum install centos-release-scl
+$ sudo yum install rh-python38
+```
+
+You can then make this available to your session in a number of ways, the easiest being one of the following:
+```sh
+$ source /opt/rh/rh-python38/enable
+# OR
+$ sudo update-alternatives --install /usr/bin/python3.8 python3.8 /opt/rh/rh-python38/root/bin/python3.8 100
+```
+
+##### CentOS Stream8
+
+Depending upon the installation, it may be necessary to install one of the following packages:
+* python3.8
+* python3.9
+
+##### Debian 11
+
+Depending upon the installation, it may be necessary to install the following package:
+* python3-distutils
+
+**N.B.** There is a known issue where an error will occur whilst attempting to perform a full execution.
+On RHEL-based distributions, `/usr/bin/command` exists to provide access to the shell builtin `command`:
+```sh
+#!/bin/sh
+builtin command "$@"
+```
+
+The following provides a workaround on Debian, assuming that `${HOME}/bin` is in your `PATH`:
+```sh
+$ cat <<EOS > ${HOME}/bin/command
+#!/bin/sh
+command "\$@"
+EOS
+
+$ chmod u+x ~/bin/command
+```
+
 ### Examples
+
 
 
 ## Build options
