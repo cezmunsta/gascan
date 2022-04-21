@@ -24,12 +24,12 @@
         - name: Check linger status
           ansible.builtin.stat:
             path: '/var/lib/systemd/linger/{{ ansible_env.SUDO_USER }}'
-          register: container_linger_stat
+          register: container_linger_check
 
         - name: Enable linger
           ansible.builtin.command:
             cmd: loginctl enable-linger '{{ ansible_env.SUDO_USER }}'
-          when: not container_linger_stat.exists|bool
+          when: not container_linger_check.stat.exists|bool
       become: true
       tags:
         - sudo
