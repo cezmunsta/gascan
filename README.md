@@ -76,10 +76,18 @@ Depending upon the installation, it may be necessary to install one of the follo
 * python3.8
 * python3.9
 
+```sh
+$ sudo dnf install python3.8
+```
+
 ##### Debian 11
 
 Depending upon the installation, it may be necessary to install the following package:
 * python3-distutils
+
+```sh
+$ sudo apt install python3-distutils
+```
 
 **N.B.** There is a known issue where an error will occur whilst attempting to perform a full execution.
 On RHEL-based distributions, `/usr/bin/command` exists to provide access to the shell builtin `command`:
