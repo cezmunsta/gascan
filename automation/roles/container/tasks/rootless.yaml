@@ -1,20 +1,38 @@
 ---
 - block:
-    - name: Install namespace packages
-      ansible.builtin.package:
-        name: '{{ container_namespace_packages }}'
-        state: present
+    - block:
+        - name: Install namespace packages
+          ansible.builtin.package:
+            name: '{{ container_namespace_packages }}'
+            state: present
 
-    - name: Set user.max_user_namespaces
-      ansible.builtin.sysctl:
-        name: user.max_user_namespaces
-        value: '{{ container_namespace_max_size|string }}'
+        - name: Set user.max_user_namespaces
+          ansible.builtin.sysctl:
+            name: user.max_user_namespaces
+            value: '{{ container_namespace_max_size|string }}'
+      become: true
+      tags:
+        - sudo
 
     - name: Gather environment settings
       ansible.builtin.setup:
         filter: ansible_env
         gather_subset: min
       when: ansible_env.SUDO_USER is undefined
+
+    - block:
+        - name: Check linger status
+          ansible.builtin.stat:
+            path: '/var/lib/systemd/linger/{{ ansible_env.SUDO_USER }}'
+          register: container_linger_stat
+
+        - name: Enable linger
+          ansible.builtin.command:
+            cmd: loginctl enable-linger '{{ ansible_env.SUDO_USER }}'
+          when: not container_linger_stat.exists|bool
+      become: true
+      tags:
+        - sudo
 
     - block:
         # TODO: Review to use 'semodule -l -m | grep -Eq '^fusefs_sock_file sha256:<insert hash>$'
