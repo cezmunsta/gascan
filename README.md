@@ -91,7 +91,8 @@ Depending upon the installation, it may be necessary to install the following pa
 $ sudo apt install python3-distutils
 ```
 
-**N.B.** There is a known issue where an error will occur whilst attempting to perform a full execution.
+###### Known issues {#debian-known-issues}
+There is a known issue where an error will occur whilst attempting to perform a full execution.
 On RHEL-based distributions, `/usr/bin/command` exists to provide access to the shell builtin `command`:
 ```sh
 #!/bin/sh
@@ -107,6 +108,10 @@ EOS
 
 $ chmod u+x ~/bin/command
 ```
+
+##### Ubuntu 22.04
+
+As with Debian 11, a [workaround](#debian-known-issues) is required unless `--skip-configure` is used.
 
 ### Examples
 
