@@ -16,7 +16,8 @@ function setup {
     case "${DISTRO}" in
         "centos:stream8") setup_redhat;;
         "centos:7") setup_redhat_legacy;;
-        "ubuntu:20.04"|"ubuntu:focal"|"debian:bullseye"|"debian:11") setup_debian;;
+        "ubuntu:22.04"|"ubuntu:jammy"|"debian:bullseye"|"debian:11") setup_debian;;
+        "python:3.10-slim") ;;
         *) echo "Unsupported distro: ${DISTRO}"; exit 1
     esac
 }

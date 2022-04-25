@@ -174,6 +174,11 @@ $ make build
 $ PY=3.9 make all
 ```
 
+#### Build for Ubuntu 22.04
+```
+$ PY=3.10 VERSION=jammy BUILD_BASE=ubuntu:jammy make all
+```
+
 #### Regenerate executables
 
 When the container image is already available for use, it is possible
