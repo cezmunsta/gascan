@@ -44,6 +44,7 @@ The following operating systems are supported:
 * CentOS Stream 9
 * Red Hat Enterprise Linux 8
 * Debian 11
+* Ubuntu 22.04
 
 #### Package updates
 
