@@ -2,6 +2,8 @@
 
 Go deploy tool to manage Percona Platform with Ansible
 
+==This tool is in proof-of-concept phase==
+
 ## Usage
 
 ```sh
@@ -108,7 +110,25 @@ $ chmod u+x ~/bin/command
 
 ### Examples
 
+#### Test-only mode
+```sh
+$ gascan --test --skip-configure --skip-deploy --monitor=dummy-monitor
+```
 
+#### Configuration-only mode
+```sh
+$ gascan --skip-deploy --monitor=dummy-monitor
+```
+
+#### Run sudo-less tasks
+```sh
+$ gascan --skip-tags=sudo --monitor=dummy-monitor
+```
+
+#### Run with a pre-defined inventory
+```sh
+$ gascan --skip-configure --inventory /path/to/inventory --monitor=dummy-monitor
+```
 
 ## Build options
 
