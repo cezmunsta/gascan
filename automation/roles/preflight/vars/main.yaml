@@ -1,14 +1,11 @@
 ---
-preflight_distros:
-  - centos
-  - redhat
-  - debian
-  - ubuntu
 preflight_distro_versions:
   centos:
     - 7
     - 8
     - 9
+  oraclelinux:
+    - 8
   redhat:
     - 7
     - 8
@@ -16,4 +13,5 @@ preflight_distro_versions:
     - 11
   ubuntu:
     - 22
+preflight_distros: '{{ preflight_distro_versions | list }}'
 ...
