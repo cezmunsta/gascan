@@ -1,0 +1,17 @@
+---
+pmm_api_base: '/v1'
+pmm_api_inventory: '{{ pmm_api_base }}/inventory'
+pmm_api_management: '{{ pmm_api_base }}/management'
+pmm_api_readyz: '{{ pmm_api_base }}/readyz'
+pmm_api_settings: '{{ pmm_api_base }}/Settings'
+pmm_api_version: '{{ pmm_api_base }}/version'
+
+pmm_grafana_base: '/graph'
+pmm_grafana_api: '{{ pmm_grafana_base }}/api'
+pmm_grafana_api_password: '{{ pmm_grafana_api }}/user/password'
+pmm_grafana_api_tokens: '{{ pmm_grafana_api }}/auth/keys'
+pmm_grafana_api_users: '{{ pmm_grafana_api }}/admin/users'
+pmm_grafana_login: '{{ pmm_grafana_base }}/login'
+
+pmm_server_uri: '{{ pmm_server_schema }}://{{ pmm_server_host }}:{{ pmm_server_port }}'
+...

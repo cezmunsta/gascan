@@ -1,0 +1,129 @@
+---
+- name: Ensure that pmm_admin_credentials has been set
+  ansible.builtin.assert:
+    that: (pmm_admin_credentials != "")
+    fail_msg: please set pmm_admin_credentials
+    success_msg: pmm_admin_credentials has been set
+
+- name: Parse pmm_admin_credentials
+  ansible.builtin.set_fact:
+    pmm_admin_credential_parts: '{{ pmm_admin_credentials | split(":") }}'
+
+- name: Generate credential facts
+  ansible.builtin.set_fact:
+    pmm_admin_token: '{{ pmm_admin_credential_parts | first }}'
+    pmm_admin_username: '{{ pmm_admin_credential_parts | first }}'
+    pmm_admin_password: '{{ pmm_admin_credential_parts | difference(pmm_admin_credential_parts | first) | join("") }}'
+    pmm_admin_use_token: '{{ pmm_admin_credential_parts | length == 1 }}'
+    pmm_admin_is_default: '{{ pmm_admin_credentials == "admin:admin" }}'
+
+- block:
+    - name: Pause to confirm updating the admin password
+      ansible.builtin.pause:
+        echo: no
+        prompt: Enter the new admin password, the inventory will be updated
+      register: pmm_admin_set_password_question
+
+    - name: Load the inventory
+      ansible.builtin.set_fact:
+        inventory_data: '{{ lookup("file", inventory_file) | from_yaml }}'
+
+    - name: Update pmm_admin_credentials
+      ansible.builtin.set_fact:
+        pmm_admin_password_new: '{{ pmm_admin_set_password_question.user_input }}'
+        inventory_data_patch: '
+           {
+            "all": {
+              "hosts": {
+                "{{ inventory_hostname }}": {
+                  "pmm_admin_credentials": "{{ pmm_admin_username }}:{{ pmm_admin_set_password_question.user_input }}"
+                }
+              }
+            }
+          }'
+
+    - name: Patch inventory data
+      ansible.builtin.set_fact:
+        inventory_data_patched: '{{ inventory_data | combine(inventory_data_patch|from_json, recursive=True) }}'
+
+    - name: Update the admin account in PMM
+      ansible.builtin.uri:
+        url: '{{ pmm_server_uri }}{{ pmm_grafana_api_password }}'
+        method: PUT
+        force_basic_auth: true
+        validate_certs: '{{ pmm_server_insecure }}'
+        headers:
+          Content-Type: application/json
+        body_format: json
+        body:
+          oldPassword: admin
+          newPassword: '{{ pmm_admin_set_password_question.user_input }}'
+          confirmNew: '{{ pmm_admin_set_password_question.user_input }}'
+        status_code:
+        - 200
+        url_password: admin
+        url_username: admin
+
+    - name: Save the updated inventory
+      ansible.builtin.copy:
+        content: '{{ inventory_data_patched | to_nice_yaml }}'
+        dest: '{{ inventory_file }}'
+        backup: true
+      loop:
+        - '{{ inventory_file }}'
+        - '/tmp/{{ inventory_file | basename }}'
+
+    - name: Pause to inform the user about the copy of the inventory
+      ansible.builtin.pause:
+        echo: no
+        prompt: "A copy of your updated inventory has been saved to /tmp/{{ inventory_file | basename }}. If you were using a custom inventory to begin with then your inventory has been updated to save the new admin password"
+
+  when: (pmm_admin_is_default | bool) and (pmm_admin_set_password | bool)
+  no_log: true
+
+- block:
+    - name: Validate pmm_admin_token
+      ansible.builtin.assert:
+        that: ( pmm_admin_token | b64decode | from_json | dict2items | length == 3 )
+        fail_msg: please check pmm_admin_credentials
+        success_msg: pmm_admin_token passed initial checks
+
+    - name: Test pmm_admin_token
+      ansible.builtin.uri:
+        url: '{{ pmm_server_uri }}{{ pmm_api_version }}'
+        method: GET
+        force_basic_auth: true
+        validate_certs: '{{ pmm_server_insecure }}'
+        headers:
+          Content-Type: application/json
+        status_code:
+        - 200
+        url_password: '{{ pmm_admin_token }}'
+        url_username: api_key
+      no_log: true
+
+    - name: Set API credentials
+      ansible.builtin.set_fact:
+        pmm_api_credentials: [api_key, '{{ pmm_admin_token }}']
+  when: pmm_admin_use_token | bool
+
+- block:
+    - name: Test username and password
+      ansible.builtin.uri:
+        url: '{{ pmm_server_uri }}{{ pmm_api_version }}'
+        method: GET
+        force_basic_auth: true
+        validate_certs: '{{ pmm_server_insecure }}'
+        headers:
+          Content-Type: application/json
+        status_code:
+        - 200
+        url_password: '{{ pmm_admin_password_new | default(pmm_admin_password) }}'
+        url_username: '{{ pmm_admin_username }}'
+      no_log: true
+
+    - name: Set API credentials
+      ansible.builtin.set_fact:
+        pmm_api_credentials: ['{{ pmm_admin_username }}', '{{ pmm_admin_password_new | default(pmm_admin_password) }}']
+  when: not pmm_admin_use_token | bool
+...
