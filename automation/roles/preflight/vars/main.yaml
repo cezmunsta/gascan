@@ -9,6 +9,7 @@ preflight_distro_versions:
   redhat:
     - 7
     - 8
+    - 9
   debian:
     - 11
   ubuntu:

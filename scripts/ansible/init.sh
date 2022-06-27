@@ -14,7 +14,9 @@ function setup {
     install -o "${USERNAME}" -m 0755 -d /app
 
     case "${DISTRO}" in
-        "centos:stream8") setup_redhat;;
+        # TODO: add support for UBI - ubi, ubi-minimal, ubi-init
+        ## https://developers.redhat.com/products/rhel/ubi
+        "centos:stream8"|"centos:stream9") setup_redhat;;
         "centos:7") setup_redhat_legacy;;
         "ubuntu:22.04"|"ubuntu:jammy"|"debian:bullseye"|"debian:11") setup_debian;;
         "python:3.10-slim") ;;
