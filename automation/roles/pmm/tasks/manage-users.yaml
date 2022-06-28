@@ -1,4 +1,11 @@
 ---
+- name: Check whether users can be created
+  ansible.builtin.assert:
+    that: (not pmm_admin_use_token | bool)
+    fail_msg: Unable to create users accounts
+    success_msg: User accounts can be created
+  ignore_errors: true
+
 - name: Create users
   ansible.builtin.uri:
     url: '{{ pmm_server_uri }}{{ pmm_grafana_api_users }}'
@@ -18,12 +25,13 @@
     url_password: '{{ pmm_api_credentials[1] }}'
     url_username: '{{ pmm_api_credentials[0] }}'
   no_log: true
+  when: not pmm_admin_use_token | bool
   loop: "{{ pmm_manage_users | selectattr('password', 'defined') }}"
 
 - name: Manage Grafana Admins
   ansible.builtin.include_tasks: grafana-admin.yaml
   no_log: true
-  when: item.is_grafana_admin | bool
+  when: item.is_grafana_admin | bool and not pmm_admin_use_token | bool
   loop: "{{ pmm_manage_users | selectattr('is_grafana_admin', 'defined') }}"
 
 - name: Create users API keys
