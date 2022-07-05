@@ -14,6 +14,22 @@
 pmm_admin_credentials: "admin:admin"
 pmm_admin_set_password: true
 
+pmm_agent_token: ''
+pmm_agent_setup_flags:
+  server-address: '{{ pmm_server_host_public | default(hostvars[groups["monitors"] | first].ansible_host) }}:{{ pmm_server_port }}'
+  server-username: api_key
+  server-password: '{{ pmm_agent_token }}'
+  server-insecure-tls: '{{ pmm_server_insecure }}'
+
+# Currently, only tarball client installs will be performed.
+# OS packages and containers to be added later
+pmm_client_home_dir: '{{ ansible_env.HOME }}'
+pmm_client_deploy_using: tarball
+pmm_client_extract_base: '{{ pmm_client_home_dir }}'
+pmm_client_force_setup: false
+pmm_client_tarball_uri: 'https://downloads.percona.com/downloads/pmm2/{{ pmm_version }}/binary/tarball/pmm2-client-{{ pmm_version }}.tar.gz'
+pmm_client_tarball_uri_checksum: '{{ pmm_client_tarball_uri }}.sha256sum'
+
 pmm_container_env:
   DATA_RETENTION: 720h
   DISABLE_TELEMETRY: 0
@@ -42,9 +58,10 @@ pmm_manage_users: []
 #   requires_token: true | omit or set to false to skip tokens
 
 pmm_server_host: 127.0.0.1
+pmm_server_host_public: '{{ hostvars[groups["monitors"] | first].ansible_default_ipv4.address }}'
 pmm_server_insecure: '{{ [pmm_server_host] | intersect(["localhost", "127.0.0.1"]) | length == 0 }}'
 pmm_server_port: '{{ pmm_container_port }}'
 pmm_server_schema: https
 
-pmm_version: latest
+pmm_version: 2.28.0
 ...

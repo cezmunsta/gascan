@@ -21,7 +21,7 @@ type Flags struct {
 }
 
 // EntryPointPlaybook defines the playbook that is executed at runtime
-var EntryPointPlaybook = "pmm-server.yaml"
+var EntryPointPlaybook = "pmm-full.yaml"
 
 func flags() {
 	Config.Mode = 0

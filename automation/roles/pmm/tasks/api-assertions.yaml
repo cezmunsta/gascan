@@ -26,7 +26,7 @@
 
     - name: Load the inventory
       ansible.builtin.set_fact:
-        inventory_data: '{{ lookup("file", inventory_file) | from_yaml }}'
+        inventory_data: '{{ lookup("ansible.builtin.file", inventory_file) | from_yaml }}'
 
     - name: Update pmm_admin_credentials
       ansible.builtin.set_fact:

@@ -9,7 +9,7 @@ SHELL=/bin/bash
 ARCH?=amd64
 BUILD_BASE?=quay.io/centos/centos:stream8
 BUILD_DIR?=./build
-ENTRYPOINT?=pmm-server.yaml
+ENTRYPOINT?=pmm-full.yaml
 GO?=$(shell which go)
 GOFMT?=$(shell which gofumpt 2>&1)
 GOLINT?=$(shell which golint 2>&1)
@@ -64,7 +64,6 @@ build: export VNAME=${NAME}-py${PY}
 build: build_prep pack check
 	@go build -o "${BUILD_DIR}/${GOOS}/${GOARCH}/${VNAME}" -trimpath -race -gcflags="all=-N -l" -ldflags="-X main.EntryPointPlaybook=${ENTRYPOINT}"
 	@cp -a "${BUILD_DIR}/${GOOS}/${GOARCH}/${VNAME}" "${BUILD_DIR}/gascan"
-	@rm -vf "${BUILD_DIR}/ansible"
 
 build_prep: export GOOS=${OS}
 build_prep: export GOARCH=${ARCH}

@@ -1,0 +1,7 @@
+---
+# vim: ts=2:sts=2:sw=2:ft=yaml:noai:et
+- name: Import PMM role
+  ansible.builtin.include_role:
+    name: pmm
+    tasks_from: client
+...

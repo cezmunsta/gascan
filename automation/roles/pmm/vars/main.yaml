@@ -1,4 +1,9 @@
 ---
+pmm_agent_tarball_flags:
+  paths-base: '{{ pmm_client_extract_base }}/pmm'
+  paths-exporters_base: '{{ pmm_client_extract_base }}/pmm/exporters'
+  paths-tempdir: '{{ pmm_client_extract_base }}/pmm/tmp'
+
 pmm_api_base: '/v1'
 pmm_api_inventory: '{{ pmm_api_base }}/inventory'
 pmm_api_management: '{{ pmm_api_base }}/management'

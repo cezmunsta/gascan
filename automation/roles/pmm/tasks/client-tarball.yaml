@@ -1,0 +1,85 @@
+---
+# TODO: remove the version file ahead of these tasks if we are updating
+- name: Check for existing version
+  ansible.builtin.command:
+    cmd: '{{ pmm_client_extract_base }}/pmm/bin/pmm-agent --version --json'
+  changed_when: false
+  ignore_errors: true
+  register: pmm_check_agent_version
+
+- name: Set pmm_agent_version
+  ansible.builtin.set_fact:
+    pmm_agent_version: '{{ pmm_check_agent_version.stdout | from_json | community.general.json_query("PMMVersion") | string | split("-") | first }}'
+
+- name: Set pmm_agent_needs_install and pmm_agent_needs_upgrade
+  ansible.builtin.set_fact:
+    pmm_agent_needs_install: '{{ pmm_agent_version == "None" }}'
+    pmm_agent_needs_upgrade: "{{ pmm_agent_version is version_compare(pmm_version, operator='<', strict=True) }}"
+
+- name: Check for existing agent config
+  ansible.builtin.stat:
+    path: '{{ pmm_client_extract_base }}/pmm/config/pmm-agent.yaml'
+  register: pmm_check_agent_config
+
+- name: Set pmm_client_needs_setup
+  ansible.builtin.set_fact:
+    pmm_client_needs_setup: '{{ pmm_check_agent_config.stat.size == 0 or pmm_client_force_setup }}'
+
+- name: Backup agent config
+  ansible.builtin.copy:
+    src: '{{ pmm_client_extract_base }}/pmm/config/pmm-agent.yaml'
+    dest: '{{ pmm_client_extract_base }}/pmm/config/pmm-agent.yaml.active'
+    remote_src: true
+  register: pmm_agent_config_backup
+  when: pmm_check_agent_config.stat.exists and (pmm_agent_needs_upgrade or pmm_agent_needs_install)
+
+# TODO: should authentication be required for downloads then
+# some new variables will need to be referenced to use with the
+# relevant parameters for the url module
+- block:
+    - name: Download the client tarball
+      ansible.builtin.get_url:
+        url: '{{ pmm_client_tarball_uri }}'
+        dest: /tmp/
+        checksum: 'sha256:{{ pmm_client_tarball_uri_checksum }}'
+        timeout: 30
+      delegate_to: localhost
+      run_once: true
+
+    - name: Extract the tarball
+      ansible.builtin.unarchive:
+        src: '/tmp/{{ pmm_client_tarball_uri | basename }}'
+        dest: '/tmp'
+        extra_opts:
+          - --transform
+          - 's;^pmm2-client-[^/]*;pmm-client;g'
+        mode: u=rwX,g=,o=
+
+    - name: Install from tarball
+      ansible.builtin.command:
+        cmd: /tmp/pmm-client/install_tarball
+      environment:
+        PMM_DIR: '{{ pmm_client_extract_base }}/pmm'
+      args:
+        chdir: /tmp/pmm-client
+        creates: '{{ pmm_client_extract_base }}/pmm/version.txt'
+      register: pmm_agent_version
+  when: pmm_agent_needs_upgrade or pmm_agent_needs_install
+
+- block:
+    - name: Set the PMM version
+      ansible.builtin.copy:
+        dest: '{{ pmm_client_extract_base }}/pmm/version.txt'
+        content: '{{ pmm_client_tarball_uri | basename }}'
+
+    - name: Restore the config
+      ansible.builtin.copy:
+        src: '{{ pmm_client_extract_base }}/pmm/config/pmm-agent.yaml.active'
+        dest: '{{ pmm_client_extract_base }}/pmm/config/pmm-agent.yaml'
+        remote_src: true
+      when: pmm_check_agent_config.stat.exists and (pmm_pmm_agent_config_backup is defined and pmm_agent_config_backup.changed)
+  when: pmm_agent_version.changed
+
+- name: Prepare the user environment
+  ansible.builtin.include_tasks: roles/pmm/tasks/client-user.yaml
+...

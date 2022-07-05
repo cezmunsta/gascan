@@ -20,6 +20,9 @@ all:
       children:
         haproxy:
         proxysql:
+    pmm_clients:
+      children:
+        dbservers:
     azure:
       hosts:
       vars:
