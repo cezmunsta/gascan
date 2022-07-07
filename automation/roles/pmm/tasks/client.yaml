@@ -33,6 +33,8 @@
     - name: Setup pmm-agent
       ansible.builtin.command:
         cmd: '{{ pmm_client_extract_base }}/pmm/bin/pmm-agent setup @${HOME}/.config/pmm/agent-flags.txt'
+      register: pmm_agent_setup_command
+      ignore_errors: '{{ "If you want override node, use --force option" in pmm_agent_setup_command.stdout }}'
 
     - name: Remove flags source file
       ansible.builtin.file:
