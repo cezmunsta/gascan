@@ -7,14 +7,23 @@
   ignore_errors: true
   register: pmm_check_agent_version
 
-- name: Set pmm_agent_version
-  ansible.builtin.set_fact:
-    pmm_agent_version: '{{ pmm_check_agent_version.stdout | from_json | community.general.json_query("PMMVersion") | string | split("-") | first }}'
+- block:
+    - name: Set pmm_agent_version
+      ansible.builtin.set_fact:
+        pmm_agent_version: '{{ pmm_check_agent_version.stdout | from_json | community.general.json_query("PMMVersion") | string | split("-") | first }}'
 
-- name: Set pmm_agent_needs_install and pmm_agent_needs_upgrade
-  ansible.builtin.set_fact:
-    pmm_agent_needs_install: '{{ pmm_agent_version == "None" }}'
-    pmm_agent_needs_upgrade: "{{ pmm_agent_version is version_compare(pmm_version, operator='<', strict=True) }}"
+    - name: Set pmm_agent_needs_install and pmm_agent_needs_upgrade
+      ansible.builtin.set_fact:
+        pmm_agent_needs_install: '{{ pmm_agent_version == "None" }}'
+        pmm_agent_needs_upgrade: "{{ pmm_agent_version is version_compare(pmm_version, operator='<', strict=True) }}"
+  when: pmm_check_agent_version.rc == 0
+
+- block:
+    - name: Set pmm_agent_needs_install and pmm_agent_needs_upgrade
+      ansible.builtin.set_fact:
+        pmm_agent_needs_install: true
+        pmm_agent_needs_upgrade: true
+  when: pmm_check_agent_version.rc != 0
 
 - name: Check for existing agent config
   ansible.builtin.stat:
@@ -23,7 +32,7 @@
 
 - name: Set pmm_client_needs_setup
   ansible.builtin.set_fact:
-    pmm_client_needs_setup: '{{ pmm_check_agent_config.stat.size == 0 or pmm_client_force_setup }}'
+    pmm_client_needs_setup: '{{ not pmm_check_agent_config.stat.exists or pmm_check_agent_config.stat.size == 0 or pmm_client_force_setup }}'
 
 - name: Backup agent config
   ansible.builtin.copy:
