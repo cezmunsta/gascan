@@ -43,6 +43,7 @@ The following operating systems are supported:
 * CentOS Stream 8
 * CentOS Stream 9
 * Red Hat Enterprise Linux 8
+* Red Hat Enterprise Linux 9
 * Debian 11
 * Ubuntu 22.04
 
