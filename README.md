@@ -137,6 +137,50 @@ $ gascan --skip-tags=sudo --monitor=dummy-monitor
 $ gascan --skip-configure --inventory /path/to/inventory --monitor=dummy-monitor
 ```
 
+## Design decisions for gascan
+
+### CLI usage
+
+- No need to have Ansible already available
+  PEX is bundled in the binary, along with the tarball containing the automation code for Ansible to use,
+  only requiring an equivalent Python version and the binary. As bundling the PEX increases the binary size, an option
+  to create a virtual environment directly is planned, to allow for a slimline binary to be generated as well.
+- Use built-in automation, or user's own
+  The binary can be built with a custom bundle instead of the default bundle, which means that a user can make adjustments
+  for their own infrastructure and repackage it. In addition, the user can choose a different playbook to execute, so
+  long as the playbook resides in the bundle.
+- Use a generated inventory, or user's own
+  During a full run, a inventory is generated and the user is given the opportunity to edit it if required. It is also
+  possible to skip this and use a custom inventory, or reuse an existing one
+- Run without the need for sudo, tasks using `become` use the `sudo` tag
+  To allow for environments where administrative privileges may not be available to the user using the tool on a
+  day-to-day basis, tasks that require sudo can run independently and the request for a password can be disabled.
+- Enable an administrator to enter the password when needing to escalate privileges
+  Whilst the user can either set `ansible_become_pass`, `ANSIBLE_BECOME_ASK_PASS`, `become_password_file`, or
+  `ANSIBLE_BECOME_PASSWORD_FILE` to avoid the need to enter the password, it may be that an administrator needs to
+  enter the password for the user, or run the administrative tasks ahead of time.
+- Failed runs allow for the user to continue with the extracted bundle
+  When a run fails, the extracted bundle is left in place, allowing for inplace fixes, or adjustments to be made
+
+### Deployment
+
+- Easily get the basics up and running (server and agents)
+  The main aim of the tool is to ease and standardise installations, so the user is left to use PMM directly for
+  certain tasks, although over time more automation will be added.
+- Run PMM Server with `podman` as a `systemd` service with an unprivileged user
+  For a more secure installation, the containers run as an unprivileged user and also are destroyed when the
+  service stops. This reduces the scope for meddling with the container, whether that be benign or otherwise,
+  and discourages editing of files etc.
+- Run PMM Agent without the need for administrative privileges
+  By default, the agent is installed via tarball and configured as a service in user's service manager.
+  Linger is set to allow it to run when the user is not logged in, although it requires starting after a reboot.
+  An administrator could replicate the service to be a system service if required.
+- Prefer use of the API whenever possible
+  Use of Grafana's and PMM's APIs are preferred over executing commands
+- Change the admin default password
+  Request a new password when the default admin password is detected and update the inventory.
+- Enable use of API tokens instead of user accounts
+
 ## Build options
 
 The following options apply to all of the builds:
