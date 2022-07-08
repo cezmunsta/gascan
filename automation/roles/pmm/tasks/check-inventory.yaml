@@ -1,0 +1,41 @@
+---
+- name: Retrieve the registered nodes
+  ansible.builtin.uri:
+    url: '{{ pmm_server_uri }}{{ pmm_api_inventory }}/Nodes/List'
+    method: POST
+    force_basic_auth: true
+    validate_certs: '{{ pmm_server_insecure }}'
+    headers:
+      Content-Type: application/json
+    url_password: '{{ pmm_admin_token if pmm_admin_use_token else (pmm_admin_password_new | default(pmm_admin_password)) }}'
+    url_username: '{{ "api_key" if pmm_admin_use_token else pmm_admin_username }}'
+  no_log: true
+  register: pmm_inventory_nodes
+
+- name: Retrieve the registered agents
+  ansible.builtin.uri:
+    url: '{{ pmm_server_uri }}{{ pmm_api_inventory }}/Agents/List'
+    method: POST
+    force_basic_auth: true
+    validate_certs: '{{ pmm_server_insecure }}'
+    headers:
+      Content-Type: application/json
+    url_password: '{{ pmm_admin_token if pmm_admin_use_token else (pmm_admin_password_new | default(pmm_admin_password)) }}'
+    url_username: '{{ "api_key" if pmm_admin_use_token else pmm_admin_username }}'
+  no_log: true
+  register: pmm_inventory_agents
+
+- name: Set pmm_inventory_node_list
+  ansible.builtin.set_fact:
+    pmm_inventory_node_list: '{{ pmm_inventory_nodes.json | json_query("*[*].node_name") | flatten }}'
+    pmm_inventory_nodeid_list: '{{ pmm_inventory_nodes.json | json_query("*[*].{node_id: node_id, node_name: node_name}") }}'
+    pmm_inventory_agent_list: '{{ pmm_inventory_agents.json | json_query("pmm_agent[*].{agent_id: agent_id, node: runs_on_node_id}") }}'
+
+- name: Set pmm_node_id
+  ansible.builtin.set_fact:
+    pmm_node_info: '{{ pmm_inventory_nodeid_list | first | json_query("[?node_name==`" + inventory_hostname + "`]") | first }}'
+
+- name: Set pmm_agent_id
+  ansible.builtin.set_fact:
+    pmm_agent_info: '{{ pmm_inventory_agent_list | json_query("[?node==`" + pmm_node_info.node_id + "`]") | first }}'
+...

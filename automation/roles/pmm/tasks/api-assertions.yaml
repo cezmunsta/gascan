@@ -1,21 +1,11 @@
 ---
-- name: Ensure that pmm_admin_credentials has been set
-  ansible.builtin.assert:
-    that: (pmm_admin_credentials != "")
-    fail_msg: please set pmm_admin_credentials
-    success_msg: pmm_admin_credentials has been set
-
-- name: Parse pmm_admin_credentials
-  ansible.builtin.set_fact:
-    pmm_admin_credential_parts: '{{ pmm_admin_credentials | split(":") }}'
-
-- name: Generate credential facts
-  ansible.builtin.set_fact:
-    pmm_admin_token: '{{ pmm_admin_credential_parts | first }}'
-    pmm_admin_username: '{{ pmm_admin_credential_parts | first }}'
-    pmm_admin_password: '{{ pmm_admin_credential_parts | difference(pmm_admin_credential_parts | first) | join("") }}'
-    pmm_admin_use_token: '{{ pmm_admin_credential_parts | length == 1 }}'
-    pmm_admin_is_default: '{{ pmm_admin_credentials == "admin:admin" }}'
+- name: Check admin credentials
+  ansible.builtin.import_role:
+    name: pmm
+    tasks_from: admin-credentials
+  delegate_to: localhost
+  run_once: true
+  when: pmm_admin_credential_parts is undefined
 
 - block:
     - name: Pause to confirm updating the admin password

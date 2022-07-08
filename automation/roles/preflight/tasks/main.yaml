@@ -24,4 +24,11 @@
         success_msg: 'Check for sudo OK'
   tags:
     - sudo
+
+- name: Check admin credentials
+  ansible.builtin.import_role:
+    name: pmm
+    tasks_from: admin-credentials
+  delegate_to: localhost
+  run_once: true
 ...

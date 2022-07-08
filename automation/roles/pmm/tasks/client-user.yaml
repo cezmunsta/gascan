@@ -51,7 +51,7 @@
     path: ~/.config/systemd/user/pmm-agent.service
   register: pmm_agent_unit_file
 
-- name: Create pmm-server service
+- name: Create pmm-agent service
   ansible.builtin.template:
     src: roles/pmm/templates/systemd/client-user.service.j2
     dest: ~/.config/systemd/user/pmm-agent.service
