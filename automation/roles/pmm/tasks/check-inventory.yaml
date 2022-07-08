@@ -31,11 +31,11 @@
     pmm_inventory_nodeid_list: '{{ pmm_inventory_nodes.json | json_query("*[*].{node_id: node_id, node_name: node_name}") }}'
     pmm_inventory_agent_list: '{{ pmm_inventory_agents.json | json_query("pmm_agent[*].{agent_id: agent_id, node: runs_on_node_id}") }}'
 
-- name: Set pmm_node_id
+- name: Set pmm_node_info
   ansible.builtin.set_fact:
     pmm_node_info: '{{ pmm_inventory_nodeid_list | first | json_query("[?node_name==`" + inventory_hostname + "`]") | first }}'
 
-- name: Set pmm_agent_id
+- name: Set pmm_agent_info
   ansible.builtin.set_fact:
     pmm_agent_info: '{{ pmm_inventory_agent_list | json_query("[?node==`" + pmm_node_info.node_id + "`]") | first }}'
 ...
