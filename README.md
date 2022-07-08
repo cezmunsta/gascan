@@ -7,19 +7,19 @@ Go deploy tool to manage Percona Platform with Ansible
 ## Usage
 
 ```sh
-Usage of ./build/linux/amd64/gascan:
+Usage of gascan:
   -editor string
         Path to preferred editor (default "vi")
   -inventory string
         Set a custom inventory
-  -log-level uint
-        Set the level of logging verbosity (default 30)
+  -log-level string
+        Set the level of logging verbosity (default "error")
   -monitor string
         Monitor alias (default "monitor")
   -passwordless-sudo
         The use of sudo does not require a password
   -playbook string
-        Playbook used for deployment (default "pmm-server.yaml")
+        Playbook used for deployment (default "pmm-full.yaml")
   -skip-configure
         Skip initial configuration
   -skip-deploy
