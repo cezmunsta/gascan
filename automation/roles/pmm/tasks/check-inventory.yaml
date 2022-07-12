@@ -33,9 +33,9 @@
 
 - name: Set pmm_node_info
   ansible.builtin.set_fact:
-    pmm_node_info: '{{ pmm_inventory_nodeid_list | first | json_query("[?node_name==`" + inventory_hostname + "`]") | first }}'
+    pmm_node_info: '{{ pmm_inventory_nodeid_list | first | json_query("[?node_name==`" + inventory_hostname + "`]") | first | default("THEREISNOMATCHFORTHEREQUESTEDHOST") }}'
 
 - name: Set pmm_agent_info
   ansible.builtin.set_fact:
-    pmm_agent_info: '{{ pmm_inventory_agent_list | json_query("[?node==`" + pmm_node_info.node_id + "`]") | first }}'
+    pmm_agent_info: '{{ "THEREISNOMATCHFORTHEREQUESTEDHOST" if pmm_node_info == "THEREISNOMATCHFORTHEREQUESTEDHOST" else pmm_inventory_agent_list | json_query("[?node==`" + pmm_node_info.node_id + "`]") | first }}'
 ...
