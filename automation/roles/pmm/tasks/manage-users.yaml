@@ -55,4 +55,50 @@
   register: pmm_manage_users_api_keys
   when: item.requires_token | bool
   loop: "{{ pmm_manage_users | selectattr('requires_token', 'defined') }}"
+
+- block:
+    - name: Create default agent API key
+      ansible.builtin.uri:
+        url: '{{ pmm_server_uri }}{{ pmm_grafana_api_tokens }}'
+        method: POST
+        force_basic_auth: true
+        validate_certs: '{{ pmm_server_insecure }}'
+        headers:
+          Content-Type: application/json
+        body_format: json
+        body:
+          name: agent-default
+          role: Admin
+        url_password: '{{ pmm_api_credentials[1] }}'
+        url_username: '{{ pmm_api_credentials[0] }}'
+      no_log: true
+      register: pmm_manage_default_agent_token
+
+    - name: Load the inventory
+      ansible.builtin.set_fact:
+        inventory_data: '{{ lookup("ansible.builtin.file", inventory_file) | from_yaml }}'
+
+    - name: Update pmm_admin_credentials
+      ansible.builtin.set_fact:
+        inventory_data_patch: '
+           {
+            "all": {
+              "vars": {
+                "pmm_agent_token": "{{ pmm_manage_default_agent_token.json | json_query("key") }}"
+              }
+            }
+          }'
+
+    - name: Save the updated inventory
+      ansible.builtin.copy:
+        content: '{{ inventory_data | combine(inventory_data_patch|from_json, recursive=True) | to_nice_yaml }}'
+        dest: '{{ item }}'
+        backup: true
+      loop:
+        - '{{ inventory_file }}'
+        - '/tmp/{{ inventory_file | basename }}'
+
+    - name: Reload inventory
+      ansible.builtin.meta: refresh_inventory
+  when: pmm_agent_token | length == 0
 ...

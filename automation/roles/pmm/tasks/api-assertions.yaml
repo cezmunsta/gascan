@@ -57,7 +57,7 @@
     - name: Save the updated inventory
       ansible.builtin.copy:
         content: '{{ inventory_data_patched | to_nice_yaml }}'
-        dest: '{{ inventory_file }}'
+        dest: '{{ item }}'
         backup: true
       loop:
         - '{{ inventory_file }}'
