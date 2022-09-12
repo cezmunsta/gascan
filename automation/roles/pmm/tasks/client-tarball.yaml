@@ -32,7 +32,7 @@
 
 - name: Set pmm_client_needs_setup
   ansible.builtin.set_fact:
-    pmm_client_needs_setup: '{{ not pmm_check_agent_config.stat.exists or pmm_check_agent_config.stat.size == 0 or pmm_client_force_setup }}'
+    pmm_client_needs_setup: '{{ not pmm_check_agent_config.stat.exists or pmm_check_agent_config.stat.size == 0 or pmm_client_force_setup or pmm_inventory_services == "" }}'
 
 - name: Backup agent config
   ansible.builtin.copy:
@@ -89,6 +89,9 @@
       when: pmm_check_agent_config.stat.exists and (pmm_pmm_agent_config_backup is defined and pmm_agent_config_backup.changed)
   when: pmm_agent_version.changed
 
+# CentOS 7 cannot use the systemd user service manager
 - name: Prepare the user environment
   ansible.builtin.include_tasks: roles/pmm/tasks/client-user.yaml
+  when: ([ansible_distribution|lower, ansible_distribution_major_version|string] | join('') != 'centos7')
+
 ...

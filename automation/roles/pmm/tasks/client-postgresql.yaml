@@ -1,0 +1,11 @@
+---
+- name: Prepare payload
+  ansible.builtin.set_fact:
+    pmm_payload: '{{ pmm_payload_base | combine(pmm_payload_add_postgresql_base, pmm_payload_add_postgresql) }}'
+
+- name: Add PostgreSQL
+  ansible.builtin.include_tasks: client-api.yaml
+  vars:
+    pmm_service: PostgreSQL
+  when: pmm_agent_running_postgres_exporter | length == 0
+...

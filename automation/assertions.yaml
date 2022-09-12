@@ -2,6 +2,8 @@
 - name: Run preflight checks
   hosts: monitors,dbservers,ha
   gather_facts: false
+  vars:
+    preflight_minimal: "{{ group_names | intersect(['cloud']) | length > 0 }}"
   pre_tasks:
     - name: Gather hardware information
       ansible.builtin.setup:
@@ -9,6 +11,7 @@
           - min
           - network
           - hardware
+      when: not preflight_minimal
       tags:
         - always
 

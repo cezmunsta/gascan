@@ -39,7 +39,7 @@
     - name: Setup pmm-agent bypassing registration
       ansible.builtin.command:
         cmd: '{{ pmm_client_extract_base }}/pmm/bin/pmm-agent setup --id={{ pmm_agent_info.agent_id }} --skip-registration @${HOME}/.config/pmm/agent-flags.txt'
-      when: ("If you want override node, use --force option" in pmm_agent_setup_command.stdout) and [inventory_hostname] | intersect(pmm_inventory_node_list)
+      when: ("If you want override node, use --force option" in pmm_agent_setup_command.stdout) and pmm_agent_running_node_exporter|length
 
     - name: Validate setup
       assert:
@@ -51,6 +51,13 @@
       ansible.builtin.file:
         path: ~/.config/pmm/agent-flags.txt
         state: absent
+
+    - block:
+        - name: Check inventory
+          ansible.builtin.include_role:
+            name: pmm
+            tasks_from: check-inventory.yaml
+      delegate_to: localhost
   when: pmm_client_needs_setup | default(False)
 
 # TODO: saving for later use
@@ -60,4 +67,9 @@
 #    changed_when: false
 #    failed_when:  pmm_client_check_admin_listen_port.stderr is defined and 'unknown long flag' in pmm_client_check_admin_listen_port.stderr
 #    register: pmm_client_check_admin_listen_port
+
+- name: Manage services
+  ansible.builtin.include_tasks: 'roles/pmm/tasks/client-{{ item }}.yaml'
+  when: ([item] | intersect(['mysql', 'mongodb', 'postgresql', 'proxysql', 'haproxy', 'external']))
+  loop: '{{ group_names }}'
 ...

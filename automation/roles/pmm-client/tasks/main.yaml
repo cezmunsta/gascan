@@ -1,7 +1,12 @@
 ---
 # vim: ts=2:sts=2:sw=2:ft=yaml:noai:et
+- name: Set client pmm_client_tasks_src and pmm_client_service_provider
+  ansible.builtin.set_fact:
+    pmm_client_tasks_src: '{{ "client-remote" if ["cloud"] | intersect(group_names) else "client" }}'
+    pmm_client_service_provider: '{{ group_names | intersect(["cloud"]) }}'
+
 - name: Import PMM role
   ansible.builtin.include_role:
     name: pmm
-    tasks_from: client
+    tasks_from: '{{ pmm_client_tasks_src }}'
 ...

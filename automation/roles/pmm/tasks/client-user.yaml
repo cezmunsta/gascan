@@ -1,14 +1,14 @@
 ---
 - name: Check linger status
   ansible.builtin.command:
-    cmd: loginctl show-user $USER --property Linger --value
+    cmd: loginctl show-user $USER --property Linger
   changed_when: false
   register: pmm_check_user_linger
 
 - name: Enable linger for $USER
   ansible.builtin.command:
     cmd: loginctl enable-linger $USER
-  when: pmm_check_user_linger.rc == 0 and pmm_check_user_linger.stdout == 'no'
+  when: pmm_check_user_linger.rc == 0 and pmm_check_user_linger.stdout == 'Linger=no'
 
 - block:
     - name: Check PATH

@@ -12,30 +12,106 @@
   no_log: true
   register: pmm_inventory_nodes
 
-- name: Retrieve the registered agents
-  ansible.builtin.uri:
-    url: '{{ pmm_server_uri }}{{ pmm_api_inventory }}/Agents/List'
-    method: POST
-    force_basic_auth: true
-    validate_certs: '{{ pmm_server_insecure }}'
-    headers:
-      Content-Type: application/json
-    url_password: '{{ pmm_admin_token if pmm_admin_use_token else (pmm_admin_password_new | default(pmm_admin_password)) }}'
-    url_username: '{{ "api_key" if pmm_admin_use_token else pmm_admin_username }}'
-  no_log: true
-  register: pmm_inventory_agents
-
-- name: Set pmm_inventory_node_list
+- name: Set pmm_inventory_node_id
   ansible.builtin.set_fact:
-    pmm_inventory_node_list: '{{ pmm_inventory_nodes.json | json_query("*[*].node_name") | flatten }}'
-    pmm_inventory_nodeid_list: '{{ pmm_inventory_nodes.json | json_query("*[*].{node_id: node_id, node_name: node_name}") }}'
-    pmm_inventory_agent_list: '{{ pmm_inventory_agents.json | json_query("pmm_agent[*].{agent_id: agent_id, node: runs_on_node_id}") }}'
+    pmm_inventory_node_id: '{{ pmm_inventory_nodes.json | json_query(pmm_json_query_node) | first | default("THEREISNOMATCHFORTHEREQUESTEDHOST") }}'
+  vars:
+    pmm_json_query_node: "*[?node_name=='{{ inventory_hostname }}'][].node_id"
 
-- name: Set pmm_node_info
-  ansible.builtin.set_fact:
-    pmm_node_info: '{{ pmm_inventory_nodeid_list | first | json_query("[?node_name==`" + inventory_hostname + "`]") | first | default("THEREISNOMATCHFORTHEREQUESTEDHOST") }}'
+- block:
+    - name: Retrieve the node's main agents
+      ansible.builtin.uri:
+        url: '{{ pmm_server_uri }}{{ pmm_api_inventory }}/Agents/List'
+        method: POST
+        force_basic_auth: true
+        validate_certs: '{{ pmm_server_insecure }}'
+        headers:
+          Content-Type: application/json
+        url_password: '{{ pmm_admin_token if pmm_admin_use_token else (pmm_admin_password_new | default(pmm_admin_password)) }}'
+        url_username: '{{ "api_key" if pmm_admin_use_token else pmm_admin_username }}'
+        body_format: json
+        body:
+          node_id: '{{ pmm_inventory_node_id }}'
+      no_log: true
+      register: pmm_inventory_agents
 
-- name: Set pmm_agent_info
+    - name: Set pmm_inventory_pmm_agent_id
+      ansible.builtin.set_fact:
+        pmm_inventory_pmm_agent_id: '{{ pmm_inventory_agents.json | json_query(pmm_json_query_agent) | first | default("THEREISNOMATCHFORTHEREQUESTEDHOST") }}'
+      vars:
+        pmm_json_query_agent: "*[].pmm_agent_id"
+
+    - name: Retrieve the node's extra agents
+      ansible.builtin.uri:
+        url: '{{ pmm_server_uri }}{{ pmm_api_inventory }}/Agents/List'
+        method: POST
+        force_basic_auth: true
+        validate_certs: '{{ pmm_server_insecure }}'
+        headers:
+          Content-Type: application/json
+        url_password: '{{ pmm_admin_token if pmm_admin_use_token else (pmm_admin_password_new | default(pmm_admin_password)) }}'
+        url_username: '{{ "api_key" if pmm_admin_use_token else pmm_admin_username }}'
+        body_format: json
+        body:
+          pmm_agent_id: '{{ pmm_inventory_pmm_agent_id }}'
+      no_log: true
+      register: pmm_inventory_agents_extra
+
+    - name: Retrieve the node's primary agent
+      ansible.builtin.uri:
+        url: '{{ pmm_server_uri }}{{ pmm_api_inventory }}/Agents/Get'
+        method: POST
+        force_basic_auth: true
+        validate_certs: '{{ pmm_server_insecure }}'
+        headers:
+          Content-Type: application/json
+        url_password: '{{ pmm_admin_token if pmm_admin_use_token else (pmm_admin_password_new | default(pmm_admin_password)) }}'
+        url_username: '{{ "api_key" if pmm_admin_use_token else pmm_admin_username }}'
+        body_format: json
+        body:
+          agent_id: '{{ pmm_inventory_pmm_agent_id }}'
+      no_log: true
+      register: pmm_inventory_agents_primary
+
+    - name: Set pmm_inventory_services
+      ansible.builtin.set_fact:
+        pmm_inventory_services: '{{ pmm_inventory_agents_extra.json | combine(pmm_inventory_agents_primary.json) | default("THEREISNOMATCHFORTHEREQUESTEDHOST") }}'
+  when: pmm_inventory_node_id != 'THEREISNOMATCHFORTHEREQUESTEDHOST'
+
+- block:
+    - name: Set pmm_inventory_services
+      ansible.builtin.set_fact:
+        pmm_inventory_services: ''
+  when: pmm_inventory_node_id == 'THEREISNOMATCHFORTHEREQUESTEDHOST'
+
+- name: Set status facts
   ansible.builtin.set_fact:
-    pmm_agent_info: '{{ "THEREISNOMATCHFORTHEREQUESTEDHOST" if pmm_node_info == "THEREISNOMATCHFORTHEREQUESTEDHOST" else pmm_inventory_agent_list | json_query("[?node==`" + pmm_node_info.node_id + "`]") | first }}'
+    pmm_agent_running_azure_exporter: '{{ pmm_inventory_services | json_query(pmm_json_query_status_azure) }}'
+    pmm_agent_running_mongodb_exporter: '{{ pmm_inventory_services | json_query(pmm_json_query_status_mongodb) }}'
+    pmm_agent_running_mysqld_exporter: '{{ pmm_inventory_services | json_query(pmm_json_query_status_mysql) }}'
+    pmm_agent_running_node_exporter: '{{ pmm_inventory_services | json_query(pmm_json_query_status_node) }}'
+    pmm_agent_running_postgres_exporter: '{{ pmm_inventory_services | json_query(pmm_json_query_status_postgres) }}'
+    pmm_agent_running_proxysql_exporter: '{{ pmm_inventory_services | json_query(pmm_json_query_status_proxysql) }}'
+    pmm_agent_running_rds_exporter: '{{ pmm_inventory_services | json_query(pmm_json_query_status_rds) }}'
+    pmm_agent_running_qan_mongodb: '{{ pmm_inventory_services | json_query(pmm_json_query_status_qan_mongodb) }}'
+    pmm_agent_running_qan_mysql_perfschema: '{{ pmm_inventory_services | json_query(pmm_json_query_status_qan_mysql_perfschema) }}'
+    pmm_agent_running_qan_mysql_slowlog: '{{ pmm_inventory_services | json_query(pmm_json_query_status_qan_mysql_slowlog) }}'
+    pmm_agent_running_qan_postgres_statements: '{{ pmm_inventory_services | json_query(pmm_json_query_status_qan_postgres_statements) }}'
+    pmm_agent_running_qan_postgres_statmonitor: '{{ pmm_inventory_services | json_query(pmm_json_query_status_qan_postgres_statmonitor) }}'
+    pmm_agent_running_vmagent_exporter: '{{ pmm_inventory_services | json_query(pmm_json_query_status_vmagent) }}'
+  vars:
+    pmm_json_query_status_azure: "azure_database_exporter[?status=='RUNNING']"
+    pmm_json_query_status_mongodb: "mongodb_exporter[?status=='RUNNING']"
+    pmm_json_query_status_mysql: "mysqld_exporter[?status=='RUNNING']"
+    pmm_json_query_status_node: "node_exporter[?status=='RUNNING']"
+    pmm_json_query_status_postgres: "postgres_exporter[?status=='RUNNING']"
+    pmm_json_query_status_proxysql: "proxysql_exporter[?status=='RUNNING']"
+    pmm_json_query_status_rds: "rds_exporter[?status=='RUNNING']"
+    pmm_json_query_status_qan_mongodb: "qan_mongodb_profiler_agent[?status=='RUNNING']"
+    pmm_json_query_status_qan_mysql_perfschema: "qan_mysql_perfschema_agent[?status=='RUNNING']"
+    pmm_json_query_status_qan_mysql_slowlog: "qan_mysql_slowlog_agent[?status=='RUNNING']"
+    pmm_json_query_status_qan_postgres_statements: "qan_postgresql_pgstatements_agent[?status=='RUNNING']"
+    pmm_json_query_status_qan_postgres_statmonitor: "qan_postgresql_pgstatmonitor_agent[?status=='RUNNING']"
+    pmm_json_query_status_vmagent: "vm_agent[?status=='RUNNING']"
+
 ...

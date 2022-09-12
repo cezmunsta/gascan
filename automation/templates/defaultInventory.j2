@@ -8,14 +8,17 @@ all:
       ansible_connection: local
       container_engine: podman
   children:
-    dbservers:
+    cloud:
       children:
         azure:
         cloudsql:
+        rds:
+    dbservers:
+      children:
+        cloud:
         mongodb:
         mysql:
         postgresql:
-        rds:
     ha:
       children:
         haproxy:
