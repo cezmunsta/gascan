@@ -1,0 +1,34 @@
+---
+- name: Prepare the kubectl container image
+  ansible.builtin.include_role:
+    name: container
+  vars:
+    container_image: '{{ tools_kubectl_image }}:{{ tools_kubectl_image_tag }}'
+
+- name: Create .kube directory in user home directory
+  ansible.builtin.file:
+    path: "{{ tools_home_dir }}/.kube"
+    state: directory
+    owner: '{{ ansible_env.USER }}'
+    mode: u=rwx,g=rx,o=
+  tags:
+    - config
+
+- name: Create kube config
+  ansible.builtin.copy:
+    content: '{{ tools_kubectl_configuration }}'
+    dest: '{{ tools_home_dir }}/.kube/config'
+    create: yes
+    owner: '{{ ansible_env.USER }}'
+    mode: u=rw,g=r,o=
+  tags:
+    - config
+
+- name: Add alias for kubectl
+  ansible.builtin.lineinfile:
+    path: '{{ tools_profile_path }}'
+    create: yes
+    line: "alias kubectl='podman run --rm -it -v {{ tools_home_dir }}/.kube/config:/.kube/config:z --name kubectl {{ tools_kubectl_image }}:{{ tools_kubectl_image_tag }}'"
+    owner: '{{ ansible_env.USER }}'
+    mode: u=rw,g=r,o=
+...

@@ -1,0 +1,34 @@
+---
+- name: Install extra tools
+  ansible.builtin.package:
+    name: "{{ item }}"
+    state: present
+  with_items:
+    - "{{ tools_packages }}"
+  become: yes
+  tags:
+    - sudo
+
+- name: Install percona-release package
+  ansible.builtin.package:
+    name: https://repo.percona.com/yum/percona-release-latest.noarch.rpm
+    state: present
+  become: yes
+  tags:
+    - sudo
+
+- name: enable percona toolkit repo
+  ansible.builtin.command: "percona-release enable {{ tools_percona_toolkit_repo }}"
+  become: yes
+  tags:
+    - sudo
+
+- name: Install percona toolkit
+  ansible.builtin.package:
+    name: percona-toolkit
+    state: present
+  become: yes
+  tags:
+    - sudo
+
+...

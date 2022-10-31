@@ -1,0 +1,16 @@
+---
+- name: Wait for PMM server to become available
+  ansible.builtin.uri:
+    url: '{{ pmm_server_uri }}{{ pmm_api_readyz }}'
+    method: GET
+    validate_certs: '{{ pmm_server_insecure }}'
+    headers:
+      Content-Type: application/json
+    status_code:
+    - 200
+    - -1
+  register: pmm_server_ready
+  until: pmm_server_ready.status is defined and pmm_server_ready.status == 200
+  retries: 12
+  delay: 10
+...

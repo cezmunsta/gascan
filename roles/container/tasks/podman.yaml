@@ -1,0 +1,40 @@
+---
+- name: Pull the container image
+  containers.podman.podman_image:
+    name: '{{ container_image }}'
+  register: container_image_pull
+
+- block:
+    - block:
+        - name: Check podman for --no-healthcheck support
+          ansible.builtin.shell:
+            cmd: podman run --help | grep -Fq 'no-healthcheck'
+          changed_when: false
+          ignore_errors: true
+          register: container_podman_healthcheck_check
+
+        - name: Set healthcheck fact
+          ansible.builtin.set_fact:
+            container_healthcheck: "{{ '--health-cmd=none --health-interval=disable' if (container_podman_healthcheck_check.rc is undefined or container_podman_healthcheck_check.rc|int == 1) else '--no-healthcheck' }}"
+      when: container_rootless
+
+    - name: Create the systemd unit file
+      ansible.builtin.template:
+        src: container-unit-file.j2
+        dest: '/etc/systemd/system/{{ container_service.name }}.service'
+        owner: root
+        group: root
+        mode: u=rw,a=r
+      register: container_service_unit
+
+    - name: Start the container
+      ansible.builtin.systemd:
+        name: '{{ container_service.name }}'
+        daemon_reload: '{{ container_service_unit.changed|bool }}'
+        enabled: true
+        state: '{{ "restarted" if (container_service_unit.changed|bool or container_force_reload|bool) else "started" }}'
+  become: true
+  when: container_service.name is defined
+  tags:
+    - sudo
+...

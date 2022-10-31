@@ -1,0 +1,15 @@
+---
+- name: Prepare the MySQL container image
+  ansible.builtin.include_role:
+    name: container
+  vars:
+    container_image: '{{ tools_mysql_image }}:{{ tools_mysql_image_tag }}'
+
+- name: Add alias for MySQL CLI
+  ansible.builtin.lineinfile:
+    path: '{{ tools_profile_path }}'
+    create: yes
+    line: "alias mysql{{ tools_mysql_image_tag }}='podman run --rm -it --entrypoint=mysql -v {{ tools_mysql_conf }}:/home/mysql/{{ tools_mysql_conf | basename }}:z {{ tools_mysql_image }}:{{ tools_mysql_image_tag }}'"
+    owner: '{{ ansible_env.USER }}'
+    mode: u=rw,g=r,o=
+...

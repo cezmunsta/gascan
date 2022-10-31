@@ -1,0 +1,25 @@
+---
+tools_percona_toolkit_version: 3.4.0
+tools_percona_toolkit_url: "https://downloads.percona.com/downloads/percona-toolkit/{{ tools_percona_toolkit_version}}/binary/tarball/percona-toolkit-{{ tools_percona_toolkit_version }}_x86_64.tar.gz"
+tools_percona_toolkit_tmp_file: "/tmp/percona-toolkit-{{ tools_percona_toolkit_version }}_x86_64.tar.gz"
+tools_percona_toolkit_sha256: "{{ tools_percona_toolkit_url}}.sha256sum"
+tools_percona_toolkit_tmp_dir: "/tmp/percona-toolkit-{{ tools_percona_toolkit_version }}"
+tools_percona_toolkit_repo: pt
+
+tools_home_dir: "{{ ansible_env.HOME }}"
+
+tools_kubectl_configuration: ''
+tools_kubectl_required: false
+tools_kubectl_image: docker.io/bitnami/kubectl
+tools_kubectl_image_tag: 1.25
+
+tools_mysql_conf: "{{ ansible_env.HOME }}/.mylogin.cnf"
+tools_mysql_image: docker.io/percona/percona-server
+tools_mysql_install: "{{ 'mysql' in groups and groups['mysql'] | length > 0 }}"
+tools_mysql_versions:
+  - 5.7
+  - 8.0
+
+tools_profile_path: "{{ tools_home_dir }}/.bashrc"
+
+tools_user_bin_dir: "{{ tools_home_dir }}/bin"

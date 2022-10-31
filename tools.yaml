@@ -1,0 +1,16 @@
+---
+- name: Run preflight checks
+  ansible.builtin.import_playbook: assertions.yaml
+  tags:
+    - always
+
+- name: Configure tooling
+  hosts: monitors
+  gather_facts: false
+  tags:
+    - tools
+
+  roles:
+    - role: tools
+...
+

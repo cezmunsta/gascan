@@ -1,0 +1,22 @@
+templates:
+   - name: managed_service_mysql_down
+     version: 1
+     summary: MySQL down
+     expr: sum by (service_name, node_name) (mysql_up) == 0
+     for: 1m
+     severity: critical
+     annotations:
+       summary: MySQL down
+       description: MySQL  is down.
+
+   - name: managed_service_VmalertAlertsError
+     version: 1
+     summary: VmalertAlertsError
+     expr: vmalert_alerts_error > 0
+     for: 1m
+     severity: critical
+     annotations:
+     {% raw %}
+       summary: "Sending Vmalert alerts error to Kibana."
+       description: "Sending Vmalert alerts error to Kibana."
+     {% endraw %}

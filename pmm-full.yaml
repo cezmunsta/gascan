@@ -1,0 +1,19 @@
+---
+- name: PMM Server
+  ansible.builtin.import_playbook: pmm-server.yaml
+  tags:
+  - pmm
+  - server
+
+- name: Tooling
+  ansible.builtin.import_playbook: tools.yaml
+  tags:
+  - tools
+  - server
+
+- name: PMM Client
+  ansible.builtin.import_playbook: pmm-client.yaml
+  tags:
+  - pmm
+  - client
+...

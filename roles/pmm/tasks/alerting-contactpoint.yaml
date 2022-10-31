@@ -1,0 +1,24 @@
+- name: Create Contact Point
+  ansible.builtin.uri:
+    url: '{{ pmm_server_uri }}{{ pmm_grafana_alerting_contactpoint }}'
+    method: POST
+    user: '{{ pmm_api_credentials[0] }}'
+    password: '{{ pmm_api_credentials[1] }}'
+    body: |
+          {
+            "disableResolveMessage": false,
+            "name": "{{ pmm_ms_folder }}_{{ item }}",
+            "settings": {
+            "integrationKey": "{{ pmm_pagerduty_token }}"
+            },
+            "type": "pagerduty",
+            "uid": "{{ pmm_alertmanager_contactpoint_uid }}_{{ item }}"
+          }
+    force_basic_auth: yes
+    status_code:
+      - 200
+      - 202
+      - 500
+    body_format: json
+    validate_certs: '{{ pmm_server_insecure }}'
+  loop: "{{ notification_services }}"

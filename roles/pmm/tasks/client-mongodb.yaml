@@ -1,0 +1,11 @@
+---
+- name: Prepare payload
+  ansible.builtin.set_fact:
+    pmm_payload: '{{ pmm_payload_base | combine(pmm_payload_add_mongodb_base, pmm_payload_add_mongodb) }}'
+
+- name: Add MongoDB
+  ansible.builtin.include_tasks: client-api.yaml
+  vars:
+    pmm_service: MongoDB
+  when: pmm_agent_running_mongodb_exporter | length == 0
+...

@@ -1,0 +1,75 @@
+---
+# This is the entrypoint for client management and it is only
+# to be used by direct calls, such as:
+#
+# - ansible.builtin.import_role:
+#       name: pmm
+#       tasks_from: client
+#
+# This allows access to the same configuration and overrides as
+# the tasks used to manage PMM server, without the need to
+# toggle inclusion in the main role tasks
+#
+
+# Define the path in full relative form to help avoid issues importing
+- name: Install PMM client
+  ansible.builtin.include_tasks: 'roles/pmm/tasks/client-{{ pmm_client_deploy_using }}.yaml'
+
+- name: Create ~/.config/pmm
+  ansible.builtin.file:
+    path: ~/.config/pmm
+    state: directory
+    mode: u=rwX,g=rX,o=
+
+- block:
+    - name: Create flags source file
+      ansible.builtin.template:
+        src: roles/pmm/templates/agent-flags.txt.j2
+        dest: ~/.config/pmm/agent-flags.txt
+        mode: u=rw,g=r,o=
+      vars:
+        pmm_agent_setup_flags_merged: '{{ pmm_agent_setup_flags | combine(pmm_agent_tarball_flags) }}'
+
+    - name: Setup pmm-agent
+      ansible.builtin.command:
+        cmd: '{{ pmm_client_extract_base }}/pmm/bin/pmm-agent setup @${HOME}/.config/pmm/agent-flags.txt'
+      ignore_errors: true
+      register: pmm_agent_setup_command
+
+    - name: Setup pmm-agent bypassing registration
+      ansible.builtin.command:
+        cmd: '{{ pmm_client_extract_base }}/pmm/bin/pmm-agent setup --id={{ pmm_agent_info.agent_id }} --skip-registration @${HOME}/.config/pmm/agent-flags.txt'
+      when: ("If you want override node, use --force option" in pmm_agent_setup_command.stdout) and pmm_agent_running_node_exporter|length
+
+    - name: Validate setup
+      assert:
+        that: pmm_agent_setup_command.rc == 0 or "If you want override node, use --force option" in pmm_agent_setup_command.stdout
+        fail_msg: PMM Agent requires attention
+        success_msg: PMM Agent setup OK
+
+    - name: Remove flags source file
+      ansible.builtin.file:
+        path: ~/.config/pmm/agent-flags.txt
+        state: absent
+
+    - block:
+        - name: Check inventory
+          ansible.builtin.include_role:
+            name: pmm
+            tasks_from: check-inventory.yaml
+      delegate_to: localhost
+  when: pmm_client_needs_setup | default(False)
+
+# TODO: saving for later use
+#- name: Check for --pmm-agent-listen-port support
+#  ansible.builtin.command:
+#    cmd: pmm-admin --pmm-agent-listen-port=1234 --help
+#    changed_when: false
+#    failed_when:  pmm_client_check_admin_listen_port.stderr is defined and 'unknown long flag' in pmm_client_check_admin_listen_port.stderr
+#    register: pmm_client_check_admin_listen_port
+
+- name: Manage services
+  ansible.builtin.include_tasks: 'roles/pmm/tasks/client-{{ item }}.yaml'
+  when: ([item] | intersect(['mysql', 'mongodb', 'postgresql', 'proxysql', 'haproxy', 'external']))
+  loop: '{{ group_names }}'
+...
