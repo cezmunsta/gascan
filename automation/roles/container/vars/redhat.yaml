@@ -1,6 +1,0 @@
----
-container_namespace_packages:
-  - shadow-utils
-container_packages:
-  - '{{ container_engine }}'
-...

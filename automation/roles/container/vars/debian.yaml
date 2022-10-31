@@ -1,6 +1,0 @@
----
-container_namespace_packages:
-  - uidmap
-container_packages:
-  - '{{ container_engine }}'
-...
