@@ -1,0 +1,6 @@
+---
+container_engine_choices:
+  - podman
+  - docker
+container_semodule_version: 1.0
+...

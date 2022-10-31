@@ -1,0 +1,13 @@
+- name: Set pmm_routes_jquery
+  ansible.builtin.set_fact:
+    pmm_routes_jquery: "[?contains(receiver, '{{ pmm_ms_folder }}_{{ pmm_policy_item }}')]"
+
+- name: Set pmm_receiver_template
+  ansible.builtin.set_fact:
+    pmm_receiver_template: {"alertmanager_config":{"route":{"routes":[{"receiver":"{{ pmm_ms_folder }}_{{ pmm_policy_item }}","object_matchers":[["service","=","{{ pmm_policy_item }}"],["severity","!=","event"]]}]}}}
+
+- name: Set pmm_alerting_base_routes
+  ansible.builtin.set_fact:
+    pmm_alerting_base_routes: "{{ pmm_alerting_base_routes | combine(pmm_receiver_template , recursive=true, list_merge='append') }}"
+  when: not pmm_existing_notification_policies.json.alertmanager_config.route.routes | json_query(pmm_routes_jquery)
+

@@ -1,0 +1,25 @@
+---
+- name: Install kubectl
+  ansible.builtin.include_tasks: kubectl.yaml
+  when: tools_kubectl_required
+  tags:
+    - kubectl
+
+- name: Install MySQL clients
+  ansible.builtin.include_tasks: mysql-client.yaml
+  vars:
+    tools_mysql_image_tag: '{{ item }}'
+  loop: '{{ tools_mysql_versions }}'
+  when: tools_mysql_install
+  tags:
+    - mysql
+
+- name: Include distro specific variables
+  ansible.builtin.include_vars: '{{ ansible_distribution | lower }}.yaml'
+
+- name: Include tasks for Percona Toolkit
+  ansible.builtin.include_tasks: '{{ ansible_distribution | lower }}_{{ ansible_distribution_major_version|int }}.yaml'
+  tags:
+    - sudo
+
+...

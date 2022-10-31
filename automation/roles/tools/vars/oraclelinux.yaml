@@ -1,0 +1,9 @@
+---
+tools_percona_toolkit_dependencies:
+  - perl
+  - perl-DBD-MySQL
+  - perl-DBI
+  - perl-Digest-MD5
+  - perl-IO-Socket-SSL
+  - perl-TermReadKey
+  - perl-Time-HiRes

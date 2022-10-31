@@ -1,0 +1,83 @@
+- name: Create local copy of default alerting rules
+  ansible.builtin.template:
+    src: grafana-alerting-templates.yaml.j2
+    dest: '/tmp/alerting-template.yaml'
+    mode: u=r,g=r,o=r
+  changed_when: false
+
+- name: Set alerting templates
+  ansible.builtin.set_fact:
+    pmm_alerting_templates: '{{ lookup("file", "/tmp/alerting-template.yaml") | from_yaml }}'
+
+- name: Create alert folder
+  ansible.builtin.uri:
+    url: '{{ pmm_server_uri }}{{ pmm_grafana_alerting_folder_create }}'
+    method: POST
+    user: '{{ pmm_api_credentials[0] }}'
+    password: '{{ pmm_api_credentials[1] }}'
+    body: {"title":"{{ pmm_ms_folder }}"}
+    force_basic_auth: yes
+    status_code:
+      - 200
+      - 409
+    body_format: json
+    validate_certs: '{{ pmm_server_insecure }}'
+
+- name: Get folder uid
+  ansible.builtin.uri:
+    url: '{{ pmm_server_uri }}{{ pmm_grafana_alerting_folder_create }}'
+    method: GET
+    user: '{{ pmm_api_credentials[0] }}'
+    password: '{{ pmm_api_credentials[1] }}'
+    force_basic_auth: yes
+    status_code:
+      - 200
+      - 409
+    body_format: json
+    validate_certs: '{{ pmm_server_insecure }}'
+    return_content: true
+  register: pmm_alerting_get_folder_uid
+
+- name: Set pmm_alerting_folder_uid
+  ansible.builtin.set_fact:
+    pmm_alerting_folder_uid: '{{ pmm_alerting_get_folder_uid.json | json_query("[? title==`" + pmm_ms_folder + "`].uid") | join(",") }}'
+
+- name: Get current alert rules
+  ansible.builtin.uri:
+    url: '{{ pmm_server_uri }}{{ pmm_grafana_alerting_rules_list }}'
+    method: GET
+    user: '{{ pmm_api_credentials[0] }}'
+    password: '{{ pmm_api_credentials[1] }}'
+    force_basic_auth: yes
+    status_code:
+      - 200
+    body_format: json
+    return_content: true
+    validate_certs: '{{ pmm_server_insecure }}'
+  register: pmm_get_alert_rules
+
+- name: Set pmm_existing_alert_rules
+  ansible.builtin.set_fact:
+    pmm_existing_alert_rules: '{{ pmm_get_alert_rules.json | json_query("ManagedService[*].rules[*].labels[].template_name")}}'
+
+- ansible.builtin.include_tasks: alerting-contactpoint.yaml
+
+- ansible.builtin.include_tasks: alerting-notification.yaml
+
+- ansible.builtin.include_tasks: alerting-templates.yaml
+  vars:
+    pmm_template_item: '{{ item }}'
+  loop: "{{ pmm_alerting_templates['templates'] }}"
+
+- ansible.builtin.include_tasks: alerting-alerts.yaml
+  vars:
+    pmm_alert_item: '{{ item }}'
+  loop: "{{ pmm_alerting_templates['templates'] }}"
+
+- name: Delete template file
+  ignore_errors: yes
+  file:
+    state: absent
+    path: '/tmp/alerting-template.yaml'
+  changed_when: false
+

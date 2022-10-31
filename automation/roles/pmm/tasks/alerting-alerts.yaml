@@ -1,0 +1,28 @@
+- name: Create alerts
+  ansible.builtin.uri:
+    url: '{{ pmm_server_uri }}{{ pmm_api_alerting_rules_create }}'
+    method: POST
+    user: '{{ pmm_api_credentials[0] }}'
+    password: '{{ pmm_api_credentials[1] }}'
+    body: |
+          {
+            "custom_labels": {},
+            "filters": [],
+            "for": "60s",
+            "severity": "SEVERITY_CRITICAL",
+            "template_name": "{{ pmm_alert_item.name }}",
+            "name": "{{ pmm_alert_item.name }}",
+            "params": [],
+            "group": "default-alert-group",
+            "folder_uid": '{{ pmm_alerting_folder_uid }}'
+          }
+    force_basic_auth: yes
+    status_code:
+      - 200
+      - 409
+    body_format: json
+    validate_certs: '{{ pmm_server_insecure }}'
+  when: pmm_get_alert_rules == "" or (pmm_alert_item.name is defined and pmm_alert_item.name not in pmm_existing_alert_rules)
+
+
+

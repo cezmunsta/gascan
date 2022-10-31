@@ -1,0 +1,53 @@
+---
+- name: Update apt cache
+  ansible.builtin.apt:
+    update_cache: yes
+  become: yes
+  tags:
+    - sudo
+
+- name: Install extra tools
+  ansible.builtin.package:
+    name: "{{ item }}"
+    state: present
+  with_items:
+    - "{{ tools_packages }}"
+  become: yes
+  tags:
+    - sudo
+
+- name: Ensure user bin directory exists
+  ansible.builtin.file:
+    path: "{{ tools_user_bin_dir }}"
+    state: directory
+
+- name: Install Percona Toolkit dependencies
+  ansible.builtin.package:
+    name: "{{ tools_percona_toolkit_dependencies }}"
+    state: present
+  become: yes
+
+- name: Download Percona Toolkit tarball
+  ansible.builtin.get_url:
+    url: "{{ tools_percona_toolkit_url }}"
+    dest: "{{ tools_percona_toolkit_tmp_file }}"
+    checksum: "sha256:{{ tools_percona_toolkit_sha256 }}"
+
+- name: Extract Percona Toolkit tarball
+  ansible.builtin.unarchive:
+    src: "{{ tools_percona_toolkit_tmp_file }}"
+    dest: "/tmp"
+    remote_src: yes
+
+- name: Move Percona Toolkit files to user bin directory
+  shell: "mv {{ tools_percona_toolkit_tmp_dir }}/bin/* {{ tools_user_bin_dir }}"
+
+- name: Percona Toolkit install cleanup
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: absent
+  with_items:
+    - "{{ tools_percona_toolkit_tmp_file }}"
+    - "{{ tools_percona_toolkit_tmp_dir }}"
+
+...

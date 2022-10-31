@@ -1,0 +1,38 @@
+- name: Get Notification Policies
+  ansible.builtin.uri:
+    url: '{{ pmm_server_uri }}{{ pmm_grafana_alerting_notification }}'
+    method: GET
+    user: '{{ pmm_api_credentials[0] }}'
+    password: '{{ pmm_api_credentials[1] }}'
+    force_basic_auth: yes
+    status_code:
+      - 200
+      - 409
+    body_format: json
+    validate_certs: '{{ pmm_server_insecure }}'
+    return_content: true
+  register: pmm_existing_notification_policies
+
+- name: Set pmm_alerting_base_routes
+  ansible.builtin.set_fact:
+    pmm_alerting_base_routes: {"alertmanager_config":{"route":{"routes":[]}}}
+
+- ansible.builtin.include_tasks: alerting-create-policies.yaml
+  vars:
+    pmm_policy_item: '{{ item }}'
+  loop: "{{ notification_services }}"
+
+- name: Add New Notification Policy
+  ansible.builtin.uri:
+    url: '{{ pmm_server_uri }}{{ pmm_grafana_alerting_notification }}'
+    method: POST
+    user: '{{ pmm_api_credentials[0] }}'
+    password: '{{ pmm_api_credentials[1] }}'
+    body: "{{ pmm_existing_notification_policies.json | combine(pmm_alerting_base_routes , recursive=true, list_merge='append') }}"
+    force_basic_auth: yes
+    status_code:
+      - 200
+      - 202
+    body_format: json
+    validate_certs: '{{ pmm_server_insecure }}'
+  register: add_notification_policy

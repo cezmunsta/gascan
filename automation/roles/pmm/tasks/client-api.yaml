@@ -1,0 +1,16 @@
+---
+- name: Add service
+  ansible.builtin.uri:
+    url: '{{ pmm_server_uri }}{{ pmm_api_management }}/{{ pmm_service }}/Add'
+    method: POST
+    force_basic_auth: true
+    validate_certs: '{{ pmm_server_insecure }}'
+    headers:
+      Content-Type: application/json
+    url_password: '{{ pmm_admin_token if pmm_admin_use_token else (pmm_admin_password_new | default(pmm_admin_password)) }}'
+    url_username: '{{ "api_key" if pmm_admin_use_token else pmm_admin_username }}'
+    body_format: json
+    body: '{{ pmm_payload }}'
+  no_log: true
+  delegate_to: localhost
+...

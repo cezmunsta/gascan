@@ -1,0 +1,7 @@
+## Environment variables for PMM server
+#
+# Please see the documentation for the latest list of supported variables:
+# https://www.percona.com/doc/percona-monitoring-and-management/2.x/setting-up/server/docker.html#environment-variables
+{% for var, val in pmm_container_env.items() %}
+{{ var }}={{ val }}
+{% endfor %}
