@@ -114,7 +114,7 @@ else
 endif
 
 sample-bundle:
-	@git archive --output=sample-bundle.tgz --format=tar.gz "${VERSION}" automation/{pmm-server-custom.yaml,ping.yaml,templates,roles,group_vars,host_vars}
+	@git archive --output=sample-bundle.tgz --format=tar.gz "${VERSION}" automation/{pmm-server-custom.yaml,ping.yaml,templates,roles,group_vars,host_vars} scripts/dynamic-inventory/get_inventory.py
 
 venv:
 	@python3 -m venv venv
