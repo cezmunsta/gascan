@@ -37,11 +37,6 @@ func flags() {
 		needsBecomePass = false
 	}
 
-	defaultExtractPath, err := os.Getwd()
-	if err != nil {
-		defaultExtractPath = os.TempDir()
-	}
-
 	extractOnlyFlag := flag.Bool("extract-bundle", false, "Just extract the bundle, use with --extract-path")
 	noConfigFlag := flag.Bool("skip-configure", false, "Skip initial configuration")
 	noDeployFlag := flag.Bool("skip-deploy", false, "Skip deploying the monitor host")
@@ -50,7 +45,7 @@ func flags() {
 	flag.BoolVar(&Config.NoSudoPassword, "passwordless-sudo", needsBecomePass == false, "The use of sudo does not require a password")
 
 	flag.StringVar(&Config.Editor, "editor", "vi", "Path to preferred editor")
-	flag.StringVar(&Config.ExtractPath, "extract-path", defaultExtractPath, "Extract the bundle to this path, use with --extract-bundle")
+	flag.StringVar(&Config.ExtractPath, "extract-path", os.TempDir(), "Extract the bundle to this path, use with --extract-bundle, when TMPDIR cannot execute, etc")
 	flag.StringVar(&Config.Inventory, "inventory", envInventory, "Set a custom inventory")
 	flag.StringVar(&Config.LogLevel, "log-level", "error", "Set the level of logging verbosity")
 	flag.StringVar(&Config.Monitor, "monitor", "monitor", "Monitor alias")
@@ -81,7 +76,7 @@ func flags() {
 	if *testFlag {
 		Config.Mode += testMode
 	}
-	if !*noConfigFlag {
+	if !*noConfigFlag && Config.Inventory == "" {
 		Config.Mode += configMode
 	}
 	if !*noDeployFlag {

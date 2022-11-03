@@ -138,6 +138,7 @@ func main() {
 	extractToFile(DynamicInventoryScript, dynamicInventory, 0o550)
 
 	if Config.Mode&extractMode > 0 {
+		fmt.Println("Extracted bundle to:", tmpDir)
 		os.Exit(0)
 	}
 
