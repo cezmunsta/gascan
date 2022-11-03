@@ -169,6 +169,8 @@ def parse_args() -> dict:
                         help='Path to the JSON config file')
     parser.add_argument('--generate-sample', '-s', action='store_true',
                         help='Print out a sample config')
+    parser.add_argument('--list', dest='dummy_list', action='store_true',
+                        help='Dummy list arg for Ansible calls')
     return vars(parser.parse_args())
 
 
@@ -183,7 +185,7 @@ def main():
 
     :return: customer inventory
     """
-    cfg = configure(**parse_args())
+    cfg = configure(**{k: v for k, v in parse_args().items() if k != 'dummy_list'})
     key_file = cfg.key_file
 
     LOG.debug('building inventory request')
