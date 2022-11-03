@@ -10,6 +10,10 @@ Go deploy tool to manage Percona Platform with Ansible
 Usage of gascan:
   -editor string
         Path to preferred editor (default "vi")
+  -extract-bundle
+        Just extract the bundle, use with --extract-path
+  -extract-path string
+        Extract the bundle to this path, use with --extract-bundle, when TMPDIR cannot execute, etc (default "/tmp")
   -inventory string
         Set a custom inventory
   -log-level string
@@ -117,6 +121,17 @@ As with Debian 11, a [workaround](#debian-known-issues) is required unless `--sk
 
 ### Examples
 
+#### Extract the bundle
+```sh
+# Using the default extract directory
+$ gascan --extract-bundle
+Extracted bundle to: /tmp/onboarding1369301009
+
+# Using a specific extract directory
+$ gascan --extract-bundle --extract-path="${HOME}/tmp"
+Extracted bundle to: /home/user/tmp/onboarding1369301009
+```
+
 #### Test-only mode
 ```sh
 $ gascan --test --skip-configure --skip-deploy --monitor=dummy-monitor
@@ -134,7 +149,12 @@ $ gascan --skip-tags=sudo --monitor=dummy-monitor
 
 #### Run with a pre-defined inventory
 ```sh
-$ gascan --skip-configure --inventory /path/to/inventory --monitor=dummy-monitor
+# Specify the inventory via the --inventory flag
+$ gascan --inventory /path/to/inventory --monitor=dummy-monitor
+
+# Specify the inventory via ANSIBLE_INVENTORY environment variable
+$ export ANSIBLE_INVENTORY=/tmp/foo.yaml
+$ gascan --monitor=dummy-monitor
 ```
 
 ## Design decisions for gascan
