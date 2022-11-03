@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	"os"
 	"strings"
 )
 
@@ -9,6 +10,7 @@ import (
 type Flags struct {
 	Editor         string
 	EnableGodMode  bool
+	ExtractPath    string
 	Inventory      string
 	LogLevel       string
 	Mode           uint
@@ -26,14 +28,25 @@ var EntryPointPlaybook = "pmm-full.yaml"
 func flags() {
 	Config.Mode = 0
 
+	envInventory := os.Getenv("ANSIBLE_INVENTORY")
+	envBecomePass := os.Getenv("ANSIBLE_BECOME_PASSWORD")
+	envBecomePassFile := os.Getenv("ANSIBLE_BECOME_PASSWORD_FILE")
+
+	needsBecomePass := true
+	if envBecomePass != "" || envBecomePassFile != "" {
+		needsBecomePass = false
+	}
+
+	extractOnlyFlag := flag.Bool("extract-bundle", false, "Just extract the bundle, use with --extract-path")
 	noConfigFlag := flag.Bool("skip-configure", false, "Skip initial configuration")
 	noDeployFlag := flag.Bool("skip-deploy", false, "Skip deploying the monitor host")
 	testFlag := flag.Bool("test", false, "Run the test play (ping)")
 
-	flag.BoolVar(&Config.NoSudoPassword, "passwordless-sudo", false, "The use of sudo does not require a password")
+	flag.BoolVar(&Config.NoSudoPassword, "passwordless-sudo", needsBecomePass == false, "The use of sudo does not require a password")
 
 	flag.StringVar(&Config.Editor, "editor", "vi", "Path to preferred editor")
-	flag.StringVar(&Config.Inventory, "inventory", "", "Set a custom inventory")
+	flag.StringVar(&Config.ExtractPath, "extract-path", os.TempDir(), "Extract the bundle to this path, use with --extract-bundle, when TMPDIR cannot execute, etc")
+	flag.StringVar(&Config.Inventory, "inventory", envInventory, "Set a custom inventory")
 	flag.StringVar(&Config.LogLevel, "log-level", "error", "Set the level of logging verbosity")
 	flag.StringVar(&Config.Monitor, "monitor", "monitor", "Monitor alias")
 	flag.StringVar(&Config.Playbook, "playbook", EntryPointPlaybook, "Playbook used for deployment")
@@ -63,10 +76,13 @@ func flags() {
 	if *testFlag {
 		Config.Mode += testMode
 	}
-	if !*noConfigFlag {
+	if !*noConfigFlag && Config.Inventory == "" {
 		Config.Mode += configMode
 	}
 	if !*noDeployFlag {
 		Config.Mode += deployMode
+	}
+	if *extractOnlyFlag {
+		Config.Mode = extractMode
 	}
 }

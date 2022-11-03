@@ -25,7 +25,7 @@ func cleanupWorkspace(path string) error {
 }
 
 func createWorkspace() string {
-	tmpDir, err := ioutil.TempDir(os.TempDir(), "onboarding")
+	tmpDir, err := ioutil.TempDir(Config.ExtractPath, "onboarding")
 	if err != nil {
 		Logger.Fatal("failed to create tmpDir '%s'; %v", tmpDir, err)
 	}

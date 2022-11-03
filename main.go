@@ -12,9 +12,10 @@ import (
 )
 
 const (
-	configMode uint = 2
-	deployMode uint = 4
-	testMode   uint = 8
+	configMode  uint = 2
+	deployMode  uint = 4
+	testMode    uint = 8
+	extractMode uint = 16
 )
 
 var (
@@ -23,6 +24,10 @@ var (
 
 	// Config stores the settings
 	Config Flags
+
+	// DynamicInventoryScript is the path to the extracted Python script
+	// to use as a dynamic inventory
+	DynamicInventoryScript string
 
 	// Logger handles log output
 	Logger Log
@@ -33,6 +38,9 @@ var (
 	defaultConfig = "templates/defaultConfig.j2"
 
 	defaultInventory = "templates/defaultInventory.j2"
+
+	//go:embed scripts/dynamic-inventory/get_inventory.py
+	dynamicInventory []byte
 
 	isDone bool
 
@@ -85,6 +93,8 @@ func main() {
 	tmpDir := createWorkspace()
 
 	Ansible = filepath.Join(tmpDir, "ansible.pex")
+	DynamicInventoryScript = filepath.Join(tmpDir, "dynamic-inventory.py")
+
 	inventory := Config.Inventory
 	playArgs := []string{}
 	pp := filepath.Join(tmpDir, Config.Playbook)
@@ -125,6 +135,12 @@ func main() {
 	playArgs = append(playArgs, "--inventory", inventory)
 
 	extractToFile(Ansible, pex, 0o550)
+	extractToFile(DynamicInventoryScript, dynamicInventory, 0o550)
+
+	if Config.Mode&extractMode > 0 {
+		fmt.Println("Extracted bundle to:", tmpDir)
+		os.Exit(0)
+	}
 
 	if Config.Mode&configMode > 0 {
 		Logger.Debug("Opening inventory for editing")
