@@ -193,6 +193,7 @@ def main():
         req.add_header(header, value)
 
     attempt = 0
+    resp = None
     LOG.debug('requesting inventory')
     while attempt < cfg.retry_attempts:
         try:
@@ -237,6 +238,7 @@ if __name__ == '__main__':
     # noinspection PyBroadException
     try:
         print(main())
+    except SystemExit:
+        pass
     except:  # pylint: disable=bare-except
         LOG.exception('failed to successfully complete the request')
-        print('{}')
