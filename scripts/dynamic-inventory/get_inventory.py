@@ -59,7 +59,7 @@ trap "rm -f "${DATA}"" EXIT
 
 PEX_SCRIPT=ansible-vault \
 ANSIBLE_VAULT_PASSWORD_FILE="${KEY_FILE}" \
-    ansible decrypt "${DATA}" &>/dev/null
+    ansible.pex decrypt "${DATA}" &>/dev/null
 cat "${DATA}"
 
 """
