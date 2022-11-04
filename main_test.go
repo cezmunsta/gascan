@@ -1,7 +1,9 @@
 package main
 
 import (
+	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 	"text/template"
@@ -54,6 +56,30 @@ func TestRenderTemplate(t *testing.T) {
 
 	if !strings.Contains(string(b), "Config = ") {
 		t.Fatalf("expected: Config = , got: %v", b)
+	}
+}
+
+func TestInventory(t *testing.T) {
+	inventory := ""
+	paths := strings.Split("test1.yaml,test2.yaml", ",")
+	data := []byte("---\n...")
+
+	for i, p := range paths {
+		tp := filepath.Join(tmpDir, p)
+		if !extractToFile(tp, data, 0o440) {
+			t.Errorf("failed to create file '%s'", tp)
+			continue
+		}
+
+		sfmt := ",%s"
+		if i == 0 {
+			sfmt = "%s"
+		}
+
+		inventory += fmt.Sprintf(sfmt, tp)
+		if _, err := checkInventoryStatus(inventory, tmpDir); err != nil {
+			t.Fatalf("failed to checkInventoryStatus for '%s'", inventory)
+		}
 	}
 }
 

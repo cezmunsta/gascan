@@ -86,6 +86,36 @@ func generateCommand(cmd string, args ...string) *exec.Cmd {
 	return c
 }
 
+func checkInventoryStatus(inventory string, tmpDir string) (string, error) {
+	paths := strings.Split(inventory, ",")
+	usableInventory := ""
+
+	for i, p := range paths {
+		if _, err := os.Stat(p); err != nil {
+			Logger.Debug("ignoring inventory path '%s'", p)
+			continue
+		}
+
+		sfmt := ",%s"
+		if i == 0 {
+			sfmt = "%s"
+		}
+
+		usableInventory += fmt.Sprintf(sfmt, p)
+	}
+
+	if usableInventory == "" {
+		usableInventory = filepath.Join(tmpDir, "temp-inventory.yaml")
+		generateDefaults(inventory)
+	}
+
+	if usableInventory != inventory {
+		return usableInventory, fmt.Errorf("unable to use '%s' as the inventory, using '%s'", inventory, usableInventory)
+	}
+
+	return inventory, nil
+}
+
 func main() {
 	flags()
 
@@ -124,12 +154,9 @@ func main() {
 
 	extractBundle(bundle, tmpDir)
 
-	if _, err := os.Stat(inventory); err != nil {
-		if inventory != "" {
-			Logger.Warning("unable to locate %s, default inventory will be used instead", inventory)
-		}
-		inventory = filepath.Join(tmpDir, "temp-inventory.yaml")
-		generateDefaults(inventory)
+	if newPath, err := checkInventoryStatus(inventory, tmpDir); err != nil {
+		Logger.Warning("unable to locate inventory '%s', '%s' will be used instead", inventory, newPath)
+		inventory = newPath
 	}
 
 	playArgs = append(playArgs, "--inventory", inventory)
