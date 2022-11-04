@@ -159,7 +159,9 @@ func main() {
 		inventory = newPath
 	}
 
-	playArgs = append(playArgs, "--inventory", inventory)
+	if os.Getenv("ANSIBLE_INVENTORY") == "" || !strings.Contains(inventory, ",") {
+		playArgs = append(playArgs, "--inventory", inventory)
+	}
 
 	extractToFile(Ansible, pex, 0o550)
 	extractToFile(DynamicInventoryScript, dynamicInventory, 0o550)
