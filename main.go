@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"crypto/sha256"
 	_ "embed"
+	"encoding/json"
 	"fmt"
 	"hash"
 	"io/ioutil"
@@ -26,12 +27,24 @@ var (
 	// Ansible stores the path to the extracted executable
 	Ansible string
 
+	// ApiEndpoint defines the target for requesting an inventory
+	ApiEndpoint = "http://localhost/inventory"
+
 	// Config stores the settings
 	Config Flags
 
 	// DynamicInventoryScript is the path to the extracted Python script
 	// to use as a dynamic inventory
 	DynamicInventoryScript string
+
+	// HeaderIdentifier sets the header name for the client identifier
+	HeaderIdentifier = "Auth-Id"
+
+	// HeaderMonitorName sets the header name for the monitor name
+	HeaderMonitorName = "Monitor-Name"
+
+	// HeaderToken sets the header name for the token
+	HeaderToken = "Auth-Token"
 
 	// Logger handles log output
 	Logger Log
@@ -53,7 +66,17 @@ var (
 
 	//go:embed build/ansible
 	pex []byte
+
+	sampleInventoryConfig SampleInventoryConfig
 )
+
+type SampleInventoryConfig struct {
+	Headers          map[string]string `json:"headers"`
+	KeyFile          string            `json:"key_file"`
+	RetryAttempts    uint              `json:"retry_attempts"`
+	RetryWaitSeconds uint              `json:"retry_wait_seconds"`
+	Uri              string            `json:"uri"`
+}
 
 // Template ensures that template.Template can be rendered
 type Template interface {
@@ -163,6 +186,7 @@ func prepareHost(baseDir string, binDir string, configDir string) error {
 	ansibleHelper := filepath.Join(binDir, "ansible.sh")
 	dynInventory := filepath.Join(binDir, "dynamic-inventory.py")
 	dynInventorySrc := filepath.Join(baseDir, "dynamic-inventory.py")
+	dynInventoryConf := filepath.Join(configDir, "inventory-config.json")
 	secrets := filepath.Join(configDir, "secrets.yaml")
 	tempInventory := filepath.Join(baseDir, "temp-inventory.yaml")
 	vaultKey := filepath.Join(configDir, ".vault-key")
@@ -212,6 +236,34 @@ func prepareHost(baseDir string, binDir string, configDir string) error {
 	if c, err := ioutil.ReadFile(dynInventorySrc); err == nil {
 		fmt.Printf("Copying dynamic inventory '%s' to '%s'\n", dynInventorySrc, dynInventory)
 		extractToFile(dynInventory, c, 0o550)
+	}
+
+	// Generate a config for the dynamic inventory
+	if _, err := os.Stat(dynInventoryConf); err != nil {
+		hi, _ := generateHash("/etc/machine-id")
+		ht, _ := generateHash("/etc/machine-id")
+
+		sampleInventoryConfig = SampleInventoryConfig{
+			Headers: map[string]string{
+				"Content-type":    "application/json",
+				HeaderIdentifier:  fmt.Sprintf("%s", hi.Sum(nil)),
+				HeaderMonitorName: Config.Monitor,
+				HeaderToken:       fmt.Sprintf("%s", ht.Sum(nil)),
+			},
+			KeyFile:          vaultKey,
+			RetryAttempts:    3,
+			RetryWaitSeconds: 10,
+			Uri:              ApiEndpoint,
+		}
+
+		buf, err := json.MarshalIndent(sampleInventoryConfig, "", "  ")
+		if err != nil {
+			return err
+		}
+
+		if err := ioutil.WriteFile(dynInventoryConf, []byte(string(buf)), 0o640); err != nil {
+			return err
+		}
 	}
 
 	return nil
