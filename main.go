@@ -21,6 +21,25 @@ const (
 	deployMode  uint = 4
 	testMode    uint = 8
 	extractMode uint = 16
+
+	extractMessage string = `
+# Add the following to your shell profile:
+export ANSIBLE_INVENTORY='%s,%s' \
+       ANSIBLE_VAULT_PASSWORD_FILE='%s' \
+       GASCAN_INVENTORY_CONFIG_FILE='%s'
+
+# Next steps:
+## If you need to set your API credentials in your CMDB
+Identifier: %s
+Token: %s
+
+## If you need to install PMM
+gascan --monitor=%s --inventory=%s --playbook=pmm-server.yaml%s
+
+## To protect any secrets
+ANSIBLE_VAULT_PASSWORD_FILE=%s ansible-vault encrypt %s
+
+`
 )
 
 var (
@@ -177,9 +196,6 @@ func generateVaultKey(path string) error {
 }
 
 func prepareHost(baseDir string, binDir string, configDir string) error {
-	// binDir := filepath.Join(baseDir, "bin")
-	// configDir := filepath.Join(baseDir, ".config", "gascan")
-
 	ansibleHelper := filepath.Join(binDir, "ansible.sh")
 	dynInventory := filepath.Join(binDir, "dynamic-inventory.py")
 	dynInventorySrc := filepath.Join(baseDir, "dynamic-inventory.py")
@@ -235,10 +251,13 @@ func prepareHost(baseDir string, binDir string, configDir string) error {
 		extractToFile(dynInventory, c, 0o550)
 	}
 
+	hi := ""
+	ht := ""
+
 	// Generate a config for the dynamic inventory
 	if _, err := os.Stat(dynInventoryConf); err != nil {
-		hi, _ := generateHash("/etc/machine-id")
-		ht, _ := generateHash("/etc/machine-id")
+		hi, _ = generateHash("/etc/machine-id")
+		ht, _ = generateHash("/etc/machine-id")
 
 		sampleInventoryConfig = SampleInventoryConfig{
 			Headers: map[string]string{
@@ -261,7 +280,30 @@ func prepareHost(baseDir string, binDir string, configDir string) error {
 		if err := ioutil.WriteFile(dynInventoryConf, []byte(string(buf)), 0o640); err != nil {
 			return err
 		}
+	} else {
+		var st SampleInventoryConfig
+		conf, _ := ioutil.ReadFile(dynInventoryConf)
+
+		if err := json.Unmarshal(conf, &st); err != nil {
+			Logger.Warning("unable to parse the inventory config '%s'", dynInventoryConf)
+		}
+
+		if val, ok := st.Headers[HeaderIdentifier]; ok {
+			hi = val
+		}
+
+		if val, ok := st.Headers[HeaderToken]; ok {
+			ht = val
+		}
 	}
+
+	p := ""
+	if Config.NoSudoPassword {
+		p = " --passwordless-sudo"
+	}
+
+	fmt.Printf(extractMessage, dynInventory, secrets, vaultKey, dynInventoryConf,
+		hi, ht, Config.Monitor, secrets, p, vaultKey, secrets)
 
 	return nil
 }
@@ -319,8 +361,8 @@ func main() {
 		bd := filepath.Join(os.Getenv("HOME"), "bin")
 		cd := filepath.Join(os.Getenv("HOME"), ".config", "gascan")
 		fmt.Println("Extracting bundle to:", tmpDir)
-		prepareHost(tmpDir, bd, cd)
 		fmt.Println("Helpers created in:", bd)
+		prepareHost(tmpDir, bd, cd)
 		os.Exit(0)
 	}
 
