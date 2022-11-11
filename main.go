@@ -4,9 +4,9 @@ import (
 	"bytes"
 	"crypto/sha256"
 	_ "embed"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"hash"
 	"io/ioutil"
 	"os"
 	"os/exec"
@@ -146,7 +146,7 @@ func checkInventoryStatus(inventory string, tmpDir string) (string, error) {
 	return inventory, nil
 }
 
-func generateHash(path string) (hash.Hash, error) {
+func generateHash(path string) (string, error) {
 	var machineId []byte
 	newKey := sha256.New()
 
@@ -155,24 +155,21 @@ func generateHash(path string) (hash.Hash, error) {
 	}
 
 	if len(machineId) == 0 {
-		return nil, fmt.Errorf("unable to locate %s", path)
+		return "", fmt.Errorf("unable to locate %s", path)
 	}
 
 	newKey.Write(machineId)
 
-	return newKey, nil
+	return hex.EncodeToString(newKey.Sum(nil)), nil
 }
 
 func generateVaultKey(path string) error {
-	var newKey hash.Hash
-
-	if nk, err := generateHash("/etc/machine-id"); err != nil {
+	nk, err := generateHash("/etc/machine-id")
+	if err != nil {
 		Logger.Fatal("unable to generate hash: %v", err)
-	} else {
-		newKey = nk
 	}
 
-	if err := ioutil.WriteFile(path, newKey.Sum(nil), 0o400); err != nil {
+	if err := ioutil.WriteFile(path, []byte(nk), 0o400); err != nil {
 		Logger.Fatal("failed to create vault key '%s': %v", path, err)
 	}
 
@@ -246,9 +243,9 @@ func prepareHost(baseDir string, binDir string, configDir string) error {
 		sampleInventoryConfig = SampleInventoryConfig{
 			Headers: map[string]string{
 				"Content-type":    "application/json",
-				HeaderIdentifier:  fmt.Sprintf("%s", hi.Sum(nil)),
+				HeaderIdentifier:  hi,
 				HeaderMonitorName: Config.Monitor,
-				HeaderToken:       fmt.Sprintf("%s", ht.Sum(nil)),
+				HeaderToken:       ht,
 			},
 			KeyFile:          vaultKey,
 			RetryAttempts:    3,
