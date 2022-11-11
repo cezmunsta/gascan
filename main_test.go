@@ -83,6 +83,25 @@ func TestInventory(t *testing.T) {
 	}
 }
 
+func TestPrepare(t *testing.T) {
+	binDir := filepath.Join(tmpDir, "bin")
+	configDir := filepath.Join(tmpDir, ".config", "gascan")
+	files := []string{
+		filepath.Join(binDir, "ansible.sh"), filepath.Join(binDir, "ansible"),
+		filepath.Join(configDir, "secrets.yaml"), filepath.Join(binDir, "dynamic-inventory.py"),
+	}
+
+	DynamicInventoryScript = filepath.Join(tmpDir, "dynamic-inventory.py")
+	extractToFile(DynamicInventoryScript, dynamicInventory, 0o550)
+	prepareHost(tmpDir, binDir, configDir)
+
+	for _, p := range files {
+		if _, err := os.Stat(p); err != nil {
+			t.Fatalf("failed to locate file: %s", p)
+		}
+	}
+}
+
 //func TestBundle(t *testing.T) {
 //	for _, f := range bundleList {
 //		if strings.HasSuffix(f, ".yml") {
