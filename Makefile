@@ -19,6 +19,7 @@ PY?=3.8
 VERSION?=$(shell git rev-parse HEAD)
 
 # Constants
+BUILD_BASE_TAG:=$(shell echo "${BUILD_BASE}" | sed 's^.*/^^g; s/:/-/g' | cut -f2 -d'/')
 GIT_BRANCH_FILES:=$(shell (git diff-tree --no-commit-id --name-only -r main..HEAD; git diff --name-only --diff-filter=AM HEAD) | grep -F .go)
 PACKAGE:=$(shell grep -E ^module go.mod | cut -f2 -d' ')
 VETFLAGS=( -unusedresult -bools -copylocks -framepointer -httpresponse -json -stdmethods -printf -stringintconv -unmarshal -unsafeptr )
@@ -47,6 +48,7 @@ ansible_image:
 	@podman image rm "${NAME}-ansible:${VERSION}" || true
 	@buildah bud -f images/ansible/Containerfile --build-arg BASE="${BUILD_BASE}" \
 	  --squash --no-cache --force-rm --compress --tag "${NAME}-ansible:${VERSION}"
+	podman image tag "${NAME}-ansible:${VERSION}" "${NAME}-ansible:${BUILD_BASE_TAG}"
 
 ansible_pex: prep
 	@podman run --rm -it -v "${BUILD_DIR}/${OS}/${ARCH}":/app:Z "${NAME}-ansible:${VERSION}" "${PY}"
