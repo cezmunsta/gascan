@@ -31,9 +31,17 @@ function setup_debian {
 }
 
 function setup_redhat {
+    local -a packages
+    local -a repos
+
     dnf makecache -y
-    dnf install -y python38 python38-wheel \
-                   python39 python39-wheel
+
+    case "${DISTRO}" in
+        "centos:stream8") packages=( python38 python38-wheel python39 python39-wheel );;
+        "centos:stream9") packages=( python3 python-wheel-wheel ); repos=( "--enablerepo=crb" );
+    esac
+
+    dnf install -y "${repos[@]}" "${packages[@]}"
     dnf clean all
 }
 
