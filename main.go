@@ -46,8 +46,8 @@ var (
 	// Ansible stores the path to the extracted executable
 	Ansible string
 
-	// ApiEndpoint defines the target for requesting an inventory
-	ApiEndpoint = "http://localhost/inventory"
+	// APIEndpoint defines the target for requesting an inventory
+	APIEndpoint = "http://localhost/inventory"
 
 	// Config stores the settings
 	Config Flags
@@ -89,12 +89,13 @@ var (
 	sampleInventoryConfig SampleInventoryConfig
 )
 
+// SampleInventoryConfig helps to generate a sample config for dynamic inventories
 type SampleInventoryConfig struct {
 	Headers          map[string]string `json:"headers"`
 	KeyFile          string            `json:"key_file"`
 	RetryAttempts    uint              `json:"retry_attempts"`
 	RetryWaitSeconds uint              `json:"retry_wait_seconds"`
-	Uri              string            `json:"uri"`
+	URI              string            `json:"uri"`
 }
 
 // Template ensures that template.Template can be rendered
@@ -166,18 +167,18 @@ func checkInventoryStatus(inventory string, tmpDir string) (string, error) {
 }
 
 func generateHash(path string) (string, error) {
-	var machineId []byte
+	var machineID []byte
 	newKey := sha256.New()
 
 	if data, err := ioutil.ReadFile(path); err == nil {
-		machineId = []byte(fmt.Sprintf("%s-%s", data, time.Now()))
+		machineID = []byte(fmt.Sprintf("%s-%s", data, time.Now()))
 	}
 
-	if len(machineId) == 0 {
+	if len(machineID) == 0 {
 		return "", fmt.Errorf("unable to locate %s", path)
 	}
 
-	newKey.Write(machineId)
+	newKey.Write(machineID)
 
 	return hex.EncodeToString(newKey.Sum(nil)), nil
 }
@@ -269,7 +270,7 @@ func prepareHost(baseDir string, binDir string, configDir string) error {
 			KeyFile:          vaultKey,
 			RetryAttempts:    3,
 			RetryWaitSeconds: 10,
-			Uri:              ApiEndpoint,
+			URI:              APIEndpoint,
 		}
 
 		buf, err := json.MarshalIndent(sampleInventoryConfig, "", "  ")
