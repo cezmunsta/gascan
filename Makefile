@@ -7,6 +7,9 @@ SHELL=/bin/bash
 
 # Options
 ARCH?=amd64
+AUTH_FIELD_1?=Auth-Id
+AUTH_FIELD_2?=Auth-Token
+AUTH_FIELD_3?=Monitor-Name
 BUILD_BASE?=quay.io/centos/centos:stream8
 BUILD_DIR?=./build
 ENTRYPOINT?=pmm-full.yaml
@@ -15,7 +18,7 @@ GOFMT?=$(shell which gofumpt 2>&1)
 GOLINT?=$(shell which golint 2>&1)
 NAME?=gascan
 OS?=linux
-PY?=3.8
+PY?=3.9
 VERSION?=$(shell git rev-parse HEAD)
 
 # Constants
@@ -31,8 +34,8 @@ INSTALL_GO_LINTER:=$(shell test "${GOLINT/which: no/}" = "${GOLINT}" && echo 0 |
 REQUIRES_GO_LINTING:=$(shell test "$(GIT_BRANCH_FILES)" = "" && echo 0 || echo 1)
 #
 
+init: prep
 init:
-	@install -d "${BUILD_DIR}/${OS}/${ARCH}"
 ifeq ($(INSTALL_GO_FORMATTER), 1)
 	@cd ~ && "${GO}" install mvdan.cc/gofumpt@latest
 endif
@@ -44,17 +47,18 @@ all: ansible build
 
 ansible: ansible_image ansible_pex
 
+ansible_image: export VNAME=${NAME}/${BUILD_BASE_TAG}-ansible:${VERSION}
 ansible_image:
-	@podman image rm "${NAME}-ansible:${VERSION}" || true
+	@podman image exists "${VNAME}" && podman image rm "${VNAME}" || true
 	@buildah bud -f images/ansible/Containerfile --build-arg BASE="${BUILD_BASE}" \
-	  --squash --no-cache --force-rm --compress --tag "${NAME}-ansible:${VERSION}"
-	podman image tag "${NAME}-ansible:${VERSION}" "${NAME}-ansible:${BUILD_BASE_TAG}"
+	  --squash --no-cache --force-rm --compress --tag "${VNAME}"
 
+ansible_pex: export VDIR=${BUILD_DIR}/${OS}/${ARCH}/${BUILD_BASE_TAG}
+ansible_pex: export VNAME=${NAME}/${BUILD_BASE_TAG}-ansible:${VERSION}
 ansible_pex: prep
-	@podman run --rm -it -v "${BUILD_DIR}/${OS}/${ARCH}":/app:Z "${NAME}-ansible:${VERSION}" "${PY}"
-	@podman image rm "${NAME}-ansible:${VERSION}" || true
-	@rm -rf "${BUILD_DIR}/${OS}/${ARCH}/venv"
-	@cp -a "${BUILD_DIR}/${OS}/${ARCH}/ansible${PY}" "${BUILD_DIR}/ansible"
+	@podman run --rm -it -v "${VDIR}":/app:Z "${VNAME}" "${PY}"
+	@rm -rf "${VDIR}/venv"
+	@cp -a "${VDIR}/ansible${PY}" "${BUILD_DIR}/ansible"
 
 automation_lint:
 	@venv/bin/ansible-lint --project-dir automation --write
@@ -62,17 +66,20 @@ automation_lint:
 
 build: export GOOS=${OS}
 build: export GOARCH=${ARCH}
-build: export VNAME=${NAME}-py${PY}
+build: export VDIR=${BUILD_DIR}/${OS}/${ARCH}/${BUILD_BASE_TAG}
+build: export VNAME=${VDIR}/${NAME}-py${PY}
 build: build_prep pack check
-	@go build -o "${BUILD_DIR}/${GOOS}/${GOARCH}/${VNAME}" -trimpath -race -gcflags="all=-N -l" -ldflags="-X main.EntryPointPlaybook=${ENTRYPOINT}"
-	@cp -a "${BUILD_DIR}/${GOOS}/${GOARCH}/${VNAME}" "${BUILD_DIR}/gascan"
+	@go build -o "${VNAME}" -trimpath -race -gcflags="all=-N -l" \
+		-ldflags="-X main.EntryPointPlaybook=${ENTRYPOINT} -X main.HeaderIdentifier=${AUTH_FIELD_1} -X main.HeaderToken=${AUTH_FIELD_2} -X main.HeaderMonitorName=${AUTH_FIELD_3}"
+	@cp -a "${VNAME}" "${BUILD_DIR}/gascan"
 
 build_prep: export GOOS=${OS}
 build_prep: export GOARCH=${ARCH}
-build_prep: export VNAME=${NAME}-py${PY}
+build_prep: export VDIR=${BUILD_DIR}/${OS}/${ARCH}/${BUILD_BASE_TAG}
+build_prep: export VNAME=${VDIR}/ansible${PY}
 build_prep:
 	@rm -vf "${BUILD_DIR}/gascan"
-	@cp -a "${BUILD_DIR}/${GOOS}/${GOARCH}/ansible${PY}" "${BUILD_DIR}/ansible"
+	@cp -a "${VNAME}" "${BUILD_DIR}/ansible"
 
 check: export GOOS=${OS}
 check: export GOARCH=${ARCH}
@@ -114,6 +121,9 @@ else
 	@echo Copying custom bundle "${BUNDLE}"
 	@cp -a "${BUNDLE}" bundle.tgz
 endif
+
+prep:
+	@install -d "${BUILD_DIR}/${OS}/${ARCH}/${BUILD_BASE_TAG}"
 
 sample-bundle:
 	@git archive --output=sample-bundle.tgz --format=tar.gz "${VERSION}" automation/{pmm-server-custom.yaml,ping.yaml,templates,roles,group_vars,host_vars} scripts/dynamic-inventory/get_inventory.py
