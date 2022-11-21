@@ -118,6 +118,11 @@ func extractBundle(tgz []byte, targetDir string) bool {
 			Logger.Fatal("failed to extract tarball: %v", err)
 		}
 
+		// Fail if an unexpected prefix exists, or the path ascends the directory tree
+		if !strings.HasPrefix(hdr.Name, "automation") || strings.Contains(hdr.Name, "..") {
+			Logger.Fatal("unexpected path found during extraction: %v", hdr.Name)
+		}
+
 		pth := filepath.Join(targetDir, strings.Replace(hdr.Name, "automation/", "", 1))
 		Logger.Debug("extracting %s", pth)
 

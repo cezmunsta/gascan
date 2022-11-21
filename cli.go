@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"os"
 	"strings"
 )
@@ -38,6 +39,7 @@ func flags() {
 	}
 
 	extractOnlyFlag := flag.Bool("extract-bundle", false, "Just extract the bundle, use with --extract-path")
+	generateHashFlag := flag.Bool("generate-hash", false, "Generate a sha256 time-based hash")
 	noConfigFlag := flag.Bool("skip-configure", false, "Skip initial configuration")
 	noDeployFlag := flag.Bool("skip-deploy", false, "Skip deploying the monitor host")
 	testFlag := flag.Bool("test", false, "Run the test play (ping)")
@@ -72,6 +74,16 @@ func flags() {
 	}
 
 	flag.Parse()
+
+	if *generateHashFlag {
+		hash, err := generateHash("/etc/machine-id")
+		if err != nil {
+			panic(err)
+		}
+
+		fmt.Println(hash)
+		os.Exit(0)
+	}
 
 	if *testFlag {
 		Config.Mode += testMode
