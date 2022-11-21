@@ -14,6 +14,8 @@ Usage of gascan:
         Just extract the bundle, use with --extract-path
   -extract-path string
         Extract the bundle to this path, use with --extract-bundle, when TMPDIR cannot execute, etc (default "/tmp")
+  -generate-hash
+        Generate a sha256 time-based hash
   -inventory string
         Set a custom inventory
   -log-level string
@@ -205,13 +207,14 @@ $ gascan --monitor=dummy-monitor
 
 The following options apply to all of the builds:
 * `ARCH` sets the system archiecture, currently limited to `amd64`
+* `BUILD_DIR` sets the base output directory for the Go binaries
 * `BUNDLE` when set will use a custom tarball instead of generating one
 * `OS` sets the operating system, currently limited to `linux`
 * `VERSION` sets the tag for container images and builds
 
-Executable files are generated to "${BUILD_DIR}/${OS}/${ARCH}", e.g:
+Executable files are generated to "${BUILD_DIR}/${OS}/${ARCH}/${BUILD_BASE_TAG}", e.g:
 ```sh
-$ ls -1 build/linux/amd64
+$ ls -1 build/linux/amd64/centos-stream8
 ansible3.8
 gascan-py3.8
 ```
@@ -227,6 +230,13 @@ For ease, the latest generated `gascan` binary can be found at "${BUILD_DIR}/gas
 * `GO` sets the Golang version
 * `GOFMT` sets the formatting tool
 * `GOLINT` sets the linter
+
+There are some additional build variables that have an effect on the generation of the
+sample config for the dynamic inventory script, which is generated via the `--extract-bundle`
+option:
+* `AUTH_FIELD_1` sets the first header used, default `Auth-Id`
+* `AUTH_FIELD_2` sets the second header used, default `Auth-Token`
+* `AUTH_FIELD_3` sets the final header used, default `Monitor-Name`
 
 ### Examples
 
