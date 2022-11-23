@@ -119,12 +119,12 @@ func extractBundle(tgz []byte, targetDir string) bool {
 		}
 
 		// Fail if an unexpected prefix exists, or the path ascends the directory tree
-		if !strings.HasPrefix(hdr.Name, "automation") || strings.Contains(hdr.Name, "..") {
-			Logger.Fatal("unexpected path found during extraction: %v", hdr.Name)
+		if strings.Contains(hdr.Name, "..") {
+			Logger.Warning("unexpected path found during extraction: %v", hdr.Name)
+			continue
 		}
 
 		pth := filepath.Join(targetDir, strings.Replace(hdr.Name, "automation/", "", 1))
-		Logger.Debug("extracting %s", pth)
 
 		if hdr.Typeflag == tar.TypeDir {
 			os.MkdirAll(pth, 0o750)
@@ -133,9 +133,14 @@ func extractBundle(tgz []byte, targetDir string) bool {
 
 		if _, err := io.Copy(&tbuf, tr); err == nil {
 			switch strings.Replace(pth, targetDir, "", 1) {
+			case "/pax_global_header":
+				tbuf.Reset()
+				Logger.Debug("ignoring %s", pth)
+				continue
 			default:
 				mode = 0o440
 			}
+			Logger.Debug("extracting %s", pth)
 			extractToFile(pth, tbuf.Bytes(), mode)
 			tbuf.Reset()
 		}
