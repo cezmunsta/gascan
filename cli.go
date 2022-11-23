@@ -44,7 +44,7 @@ func flags() {
 	noDeployFlag := flag.Bool("skip-deploy", false, "Skip deploying the monitor host")
 	testFlag := flag.Bool("test", false, "Run the test play (ping)")
 
-	flag.BoolVar(&Config.NoSudoPassword, "passwordless-sudo", needsBecomePass == false, "The use of sudo does not require a password")
+	flag.BoolVar(&Config.NoSudoPassword, "passwordless-sudo", !needsBecomePass, "The use of sudo does not require a password")
 
 	flag.StringVar(&Config.Editor, "editor", "vi", "Path to preferred editor")
 	flag.StringVar(&Config.ExtractPath, "extract-path", os.TempDir(), "Extract the bundle to this path, use with --extract-bundle, when TMPDIR cannot execute, etc")
