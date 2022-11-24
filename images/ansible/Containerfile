@@ -1,15 +1,22 @@
-ARG BASE=quay.io/centos/centos:stream8
+ARG ANSIBLE=6.6.0
+ARG BASE=quay.io/centos/centos:stream9
+ARG PACKAGES_OS=
+ARG PACKAGES_PIP=
 ARG USER_NAME=percona
 ARG USER_UID=1000
 
 FROM "${BASE}"
 
+ARG ANSIBLE
 ARG BASE
+ARG PACKAGES_OS
+ARG PACKAGES_PIP
 COPY scripts /opt/scripts
-RUN /opt/scripts/ansible/init.sh "$(basename "${BASE}")"
+COPY extra_packages*txt /opt
+RUN /opt/scripts/ansible/init.sh "$(basename "${BASE}")" "${PACKAGES_OS}"
 
 USER "${USER_NAME}"
 WORKDIR /app
 ENTRYPOINT ["/opt/scripts/ansible/install.sh"]
-CMD ["3.8"]
+CMD ["3.9", "${ANSIBLE}", "${PACKAGES_PIP}"]
 VOLUME ["/app"]
