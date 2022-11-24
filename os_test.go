@@ -11,7 +11,7 @@ import (
 
 func generateDummyTarball() ([]byte, error) {
 	var buf bytes.Buffer
-	var files = []struct {
+	files := []struct {
 		Name, Body string
 		Mode       int64
 	}{
