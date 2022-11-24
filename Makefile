@@ -6,6 +6,7 @@ SHELL=/bin/bash
 .PHONY: venv
 
 # Options
+ANSIBLE?=6.6.0
 ARCH?=amd64
 AUTH_FIELD_1?=Auth-Id
 AUTH_FIELD_2?=Auth-Token
@@ -18,6 +19,8 @@ GOFMT?=$(shell which gofumpt 2>&1)
 GOLINT?=$(shell which golint 2>&1)
 NAME?=gascan
 OS?=linux
+PACKAGES_OS?=extra_packages_os.txt
+PACKAGES_PIP?=extra_packages_pip.txt
 PY?=3.9
 VERSION?=$(shell git rev-parse HEAD)
 
@@ -51,12 +54,13 @@ ansible_image: export VNAME=${NAME}/${BUILD_BASE_TAG}-ansible:${VERSION}
 ansible_image:
 	@podman image exists "${VNAME}" && podman image rm "${VNAME}" || true
 	@buildah bud -f images/ansible/Containerfile --build-arg BASE="${BUILD_BASE}" \
+	  --build-arg PACKAGES_OS="${PACKAGES_OS}" --build-arg PACKAGES_PIP="${PACKAGES_PIP}" \
 	  --squash --no-cache --force-rm --compress --tag "${VNAME}"
 
 ansible_pex: export VDIR=${BUILD_DIR}/${OS}/${ARCH}/${BUILD_BASE_TAG}
 ansible_pex: export VNAME=${NAME}/${BUILD_BASE_TAG}-ansible:${VERSION}
 ansible_pex: prep
-	@podman run --rm -it -v "${VDIR}":/app:Z "${VNAME}" "${PY}"
+	@podman run --rm -it -v "${VDIR}":/app:Z "${VNAME}" "${PY}" "${ANSIBLE}" "${PACKAGES_PIP}"
 	@rm -rf "${VDIR}/venv"
 	@cp -a "${VDIR}/ansible${PY}" "${BUILD_DIR}/ansible"
 
