@@ -12,7 +12,7 @@ ARG BASE
 ARG PACKAGES_OS
 ARG PACKAGES_PIP
 COPY scripts /opt/scripts
-COPY images/ansible/extra_packages_*.txt /opt
+COPY "${PACKAGES_OS}" "${PACKAGES_PIP}" /opt
 RUN /opt/scripts/ansible/init.sh "$(basename "${BASE}")" "${PACKAGES_OS}"
 
 USER "${USER_NAME}"

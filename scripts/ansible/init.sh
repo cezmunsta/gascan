@@ -88,4 +88,4 @@ id -un "${USERUID}" || {
         "${USERNAME}"
 }
 
-setup "${PACKAGES}"
+setup "/opt/$(basename "${PACKAGES}")"
