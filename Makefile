@@ -19,8 +19,8 @@ GOFMT?=$(shell which gofumpt 2>&1)
 GOLINT?=$(shell which golint 2>&1)
 NAME?=gascan
 OS?=linux
-PACKAGES_OS?=extra_packages_os.txt
-PACKAGES_PIP?=extra_packages_pip.txt
+PACKAGES_OS?=images/ansible/extra_packages_os.txt
+PACKAGES_PIP?=images/ansible/extra_packages_pip.txt
 PY?=3.9
 VERSION?=$(shell git rev-parse HEAD)
 
@@ -47,6 +47,34 @@ ifeq ($(INSTALL_GO_LINTER), 1)
 endif
 
 all: ansible build 
+
+all_versions:
+	@printf "all_el9\nall_el8\nall_el7\nall_jammy\nall_bullseye"
+
+all_el9: export BUILD_BASE=quay.io/centos/centos:stream9
+all_el9: export BUILD_BASE_TAG=centos-stream9
+all_el9: export PY=3.9
+all_el9: ansible build
+
+all_el8: export BUILD_BASE=quay.io/centos/centos:stream8
+all_el8: export BUILD_BASE_TAG=centos-stream8
+all_el8: export PY=3.9
+all_el8: ansible build
+
+all_el7: export BUILD_BASE=quay.io/centos/centos:7
+all_el7: export BUILD_BASE_TAG=centos-7
+all_el7: export PY=3.8
+all_el7: ansible build
+
+all_jammy: export BUILD_BASE=ubuntu:jammy
+all_jammy: export BUILD_BASE_TAG=ubuntu-jammy
+all_jammy: export PY=3.10
+all_jammy: ansible build
+
+all_bullseye: export BUILD_BASE=debian:bullseye
+all_bullseye: export BUILD_BASE_TAG=debian-bullseye
+all_bullseye: export PY=3.9
+all_bullseye: ansible build
 
 ansible: ansible_image ansible_pex
 
