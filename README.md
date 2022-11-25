@@ -245,12 +245,17 @@ option:
 
 #### Standard build
 ```sh
-# Build everything
+# Build everything for the default version
 $ make all
 
 # Build separately
 $ make ansible
 $ make build
+```
+
+#### Build all versions
+```sh
+$ make all_versions | xargs -L1 make
 ```
 
 #### Build for Python 3.9
