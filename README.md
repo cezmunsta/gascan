@@ -1,3 +1,6 @@
+[![Dependencies](https://github.com/cezmunsta/gascan/actions/workflows/dependency-review.yml/badge.svg)](https://github.com/cezmunsta/gascan/actions/workflows/dependency-review.yml)
+[![CodeQL](https://github.com/cezmunsta/gascan/actions/workflows/codeql.yml/badge.svg)](https://github.com/cezmunsta/gascan/actions/workflows/codeql.yml)
+
 # gascan
 
 Go deploy tool to manage Percona Platform with Ansible
