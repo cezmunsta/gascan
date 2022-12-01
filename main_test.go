@@ -87,8 +87,11 @@ func TestPrepare(t *testing.T) {
 	binDir := filepath.Join(tmpDir, "bin")
 	configDir := filepath.Join(tmpDir, ".config", "gascan")
 	files := []string{
-		filepath.Join(binDir, "ansible.sh"), filepath.Join(binDir, "ansible"),
-		filepath.Join(configDir, "secrets.yaml"), filepath.Join(binDir, "dynamic-inventory.py"),
+		filepath.Join(binDir, "ansible.pex"),
+		filepath.Join(binDir, "ansible.sh"),
+		filepath.Join(binDir, "ansible"),
+		filepath.Join(configDir, "secrets.yaml"),
+		filepath.Join(binDir, "dynamic-inventory.py"),
 	}
 
 	DynamicInventoryScript = filepath.Join(tmpDir, "dynamic-inventory.py")
