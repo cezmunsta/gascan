@@ -198,6 +198,7 @@ func generateVaultKey(path string) error {
 
 func prepareHost(baseDir string, binDir string, configDir string) error {
 	ansibleHelper := filepath.Join(binDir, "ansible.sh")
+	ansiblePex := filepath.Join(binDir, "ansible.pex")
 	dynInventory := filepath.Join(binDir, "dynamic-inventory.py")
 	dynInventorySrc := filepath.Join(baseDir, "dynamic-inventory.py")
 	dynInventoryConf := filepath.Join(configDir, "inventory-config.json")
@@ -225,6 +226,9 @@ func prepareHost(baseDir string, binDir string, configDir string) error {
 	// Create the Ansible PEX helper and symlinks
 	if _, err := os.Stat(ansibleHelper); err != nil {
 		symlinks := []string{"ansible", "ansible-playbook", "ansible-vault", "ansible-config", "ansible-inventory"}
+
+		fmt.Println("Creating Ansible PEX:", ansiblePex)
+		extractToFile(ansiblePex, pex, 0o750)
 
 		fmt.Println("Creating Ansible helper script:", ansibleHelper)
 		extractToFile(ansibleHelper, binHelper, 0o750)
