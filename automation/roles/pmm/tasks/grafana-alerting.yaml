@@ -4,10 +4,12 @@
     dest: '/tmp/alerting-template.yaml'
     mode: u=r,g=r,o=r
   changed_when: false
+  delegate_to: localhost
 
 - name: Set alerting templates
   ansible.builtin.set_fact:
     pmm_alerting_templates: '{{ lookup("file", "/tmp/alerting-template.yaml") | from_yaml }}'
+  delegate_to: localhost
 
 - name: Create alert folder
   ansible.builtin.uri:
@@ -15,7 +17,7 @@
     method: POST
     user: '{{ pmm_api_credentials[0] }}'
     password: '{{ pmm_api_credentials[1] }}'
-    body: {"title":"{{ pmm_ms_folder }}"}
+    body: {"title":"{{ pmm_template_folder }}"}
     force_basic_auth: yes
     status_code:
       - 200
@@ -40,7 +42,65 @@
 
 - name: Set pmm_alerting_folder_uid
   ansible.builtin.set_fact:
-    pmm_alerting_folder_uid: '{{ pmm_alerting_get_folder_uid.json | json_query("[? title==`" + pmm_ms_folder + "`].uid") | join(",") }}'
+    pmm_alerting_folder_uid: '{{ pmm_alerting_get_folder_uid.json | json_query("[? title==`" + pmm_template_folder + "`].uid") | join(",") }}'
+
+- name: Get all templates
+  ansible.builtin.uri:
+    url: '{{ pmm_server_uri }}{{ pmm_api_alerting_templates_list }}'
+    method: POST
+    user: '{{ pmm_api_credentials[0] }}'
+    password: '{{ pmm_api_credentials[1] }}'
+    body: {"title":"{{ pmm_template_folder }}"}
+    force_basic_auth: yes
+    status_code:
+      - 200
+      - 409
+    body_format: json
+    validate_certs: '{{ pmm_server_insecure }}'
+    return_content: true
+  register: pmm_get_alert_templates
+
+- name: Set alerts for service
+  ansible.builtin.set_fact:
+    pmm_alerts_for_services: "{{ pmm_alerts_for_services + (pmm_alerting_templates['templates'] | selectattr('labels.service','equalto', item ) | map(attribute='name')) }}"
+  loop: "{{ pmm_enable_all_alerts_for_service }}"
+
+- name: Create Alert list
+  ansible.builtin.set_fact:
+      pmm_alert_names: "{{ pmm_alert_names + [{'name': item | split(pmm_templates_prefix) | last}]}}"
+  loop: "{{ pmm_alerts_for_services }}"
+
+- name: Set alerts to be enabled
+  ansible.builtin.set_fact:
+      pmm_enabled_alerts: "{{ [pmm_alert_names, pmm_alert_list]| community.general.lists_mergeby('name',recursive=true) }}"
+
+- name: Set pmm_existing_alert_templates
+  ansible.builtin.set_fact:
+    pmm_existing_alert_templates: "{{ pmm_get_alert_templates.json | json_query('templates[*].name')}}"
+
+- ansible.builtin.include_tasks: alerting-contactpoint.yaml
+
+- ansible.builtin.include_tasks: alerting-notification.yaml
+
+- ansible.builtin.include_tasks: alerting-templates.yaml
+  vars:
+    pmm_template_item: '{{ item }}'
+  when: "{{ item.labels.service in pmm_enable_all_templates_for_service}}"
+  loop: "{{ pmm_alerting_templates['templates'] }}"
+
+- name: Delete Current Alert rules
+  ansible.builtin.uri:
+    url: '{{ pmm_server_uri }}{{ pmm_grafana_alerting_rules_delete }}'
+    method: DELETE
+    user: '{{ pmm_api_credentials[0] }}'
+    password: '{{ pmm_api_credentials[1] }}'
+    force_basic_auth: yes
+    status_code:
+      - 202
+    body_format: json
+    validate_certs: '{{ pmm_server_insecure }}'
+    return_content: true
+  when: pmm_delete_alert_rules
 
 - name: Get current alert rules
   ansible.builtin.uri:
@@ -58,21 +118,12 @@
 
 - name: Set pmm_existing_alert_rules
   ansible.builtin.set_fact:
-    pmm_existing_alert_rules: '{{ pmm_get_alert_rules.json | json_query("ManagedService[*].rules[*].labels[].template_name")}}'
-
-- ansible.builtin.include_tasks: alerting-contactpoint.yaml
-
-- ansible.builtin.include_tasks: alerting-notification.yaml
-
-- ansible.builtin.include_tasks: alerting-templates.yaml
-  vars:
-    pmm_template_item: '{{ item }}'
-  loop: "{{ pmm_alerting_templates['templates'] }}"
+    pmm_existing_alert_rules: '{{ pmm_get_alert_rules.json | json_query(""+ pmm_template_folder + "[*].rules[*].annotations[].rule")}}'
 
 - ansible.builtin.include_tasks: alerting-alerts.yaml
   vars:
     pmm_alert_item: '{{ item }}'
-  loop: "{{ pmm_alerting_templates['templates'] }}"
+  loop: "{{ pmm_enabled_alerts | selectattr('name','defined') | list }}"
 
 - name: Delete template file
   ignore_errors: yes
@@ -80,4 +131,5 @@
     state: absent
     path: '/tmp/alerting-template.yaml'
   changed_when: false
+  delegate_to: localhost
 

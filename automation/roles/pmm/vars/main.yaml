@@ -12,6 +12,7 @@ pmm_api_settings: '{{ pmm_api_base }}/Settings'
 pmm_api_version: '{{ pmm_api_base }}/version'
 pmm_api_alerting_rules_create: '{{ pmm_api_base }}/management/alerting/Rules/Create'
 pmm_api_alerting_templates_create: '{{ pmm_api_base }}/management/alerting/Templates/Create'
+pmm_api_alerting_templates_update: '{{ pmm_api_base }}/management/alerting/Templates/Update'
 pmm_api_alerting_templates_list: '{{ pmm_api_base }}/management/alerting/Templates/List'
 
 pmm_grafana_base: '/graph'
@@ -24,9 +25,7 @@ pmm_grafana_alerting_rules_list: '{{ pmm_grafana_api }}/ruler/grafana/api/v1/rul
 pmm_grafana_alerting_folder_create: '{{ pmm_grafana_api }}/folders'
 pmm_grafana_alerting_contactpoint: '{{ pmm_grafana_api }}/v1/provisioning/contact-points'
 pmm_grafana_alerting_notification: '{{ pmm_grafana_api }}/alertmanager/grafana/config/api/v1/alerts'
-
-pmm_setup_alerting: true
-notification_services: ["mysql","mongo","generic","agent","proxysql","postgresql","backup"]
+pmm_grafana_alerting_rules_delete: '{{ pmm_grafana_alerting_rules_list }}{{ pmm_template_folder }}/'
 
 pmm_payload_base:
    cluster: standalone

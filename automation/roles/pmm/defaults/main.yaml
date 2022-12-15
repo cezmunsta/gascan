@@ -22,9 +22,68 @@ pmm_agent_setup_flags:
   server-password: '{{ pmm_agent_token }}'
   server-insecure-tls: '{{ pmm_server_insecure }}'
 
-pmm_ms_folder: 'ManagedService'
-pmm_alertmanager_contactpoint_uid: managedservice_contact_point
+pmm_template_folder: '{{ pmm_default_template_folder | default("DefaultFolder")}}'
+pmm_alertmanager_contactpoint_uid: '{{ pmm_alertamanger_default_contactpoint_uid | default("DefaultContact_")}}'
+pmm_templates_prefix: '{{ pmm_default_templates_prefix | default("DefaultPrefix_")}}'
+pmm_alerting_runbook_path: 'https://localhost/runbooks/'              # path used in alert labels
+pmm_alertmanager_rule_periods:                                                                          # Used to set the "for" duration in rules
+  interval_unit: m
+  low_interval: 1
+  med_interval: 5
+  high_interval: 10
+  max_interval: 15
 
+## Alert Manager Rules Thresholds
+pmm_alertmanager_thr_PostgresqlCommitRateLow: 80
+pmm_alertmanager_thr_DiskSpaceCritical: 10
+pmm_alertmanager_thr_DiskSpaceWarning: 20
+pmm_alertmanager_thr_NodeIOUtilization: 950
+pmm_alertmanager_thr_CPUSaturationRDS: 0.8
+pmm_alertmanager_thr_StaleUpload: 93600                           # In default it is 26h (60*60*26)
+pmm_alertmanager_thr_StaleBackup: 93600                           # In default it is 26h (60*60*26)
+pmm_alertmanager_thr_StaleBackupLog: 3900                         # In default it is 65m (60*65)
+pmm_alertmanager_thr_StaleUploadLog: 3900
+
+pmm_setup_alerting: true
+pmm_delete_alert_rules: false
+pmm_notification_services: ["mysql","mongo","generic","agent","proxysql","postgresql","backup"]
+
+pmm_enable_all_alerts_for_service: []
+# pmm_enable_all_alert_for_service: ["mysql","mongo","generic","agent","proxysql","postgresql","backup"]
+pmm_enable_all_templates_for_service: []
+#pmm_enable_all_templates_for_service: ["mysql","mongo","generic","agent","proxysql","postgresql","backup"]
+pmm_alerts_for_services: []
+pmm_alert_names: []
+pmm_enabled_alerts: []
+
+pmm_alert_list: []
+#pmm_alert_list:
+#  - name: DiskSpaceWarning
+#    template_name: DiskSpaceWarning
+#    threshold: 30
+#    custom_labels:
+#      label1: '1'
+#      label2: '2'
+#    filters:
+#    - label: env
+#      regexp: staging
+#      type: MATCH
+#    - label: node_name
+#      regexp: db10
+#      type: MISMATCH
+#  - name: DiskSpaceWarning_diff_threshold
+#    template_name: DiskSpaceWarning
+#    threshold: 40
+#    filters:
+#    - label: env
+#      regexp: prod
+#      type: MATCH
+#    - label: node_name
+#      regexp: db11
+#      type: MISMATCH
+#  - name: MySQLInstanceNotAvailable
+#    template_name: MySQLInstanceNotAvailable
+#  - name: VmalertAlertsError
 
 # Currently, only tarball client installs will be performed.
 # OS packages and containers to be added later
@@ -52,7 +111,7 @@ pmm_container_image_repo: '{{ "docker.io/perconalab" if [pmm_version]|intersect(
 pmm_container_port: 8443
 pmm_container_volume: pmm-data
 
-pmm_deploy_using: podman
+pmm_deploy_using: '{{ container_engine | default("podman") }}'
 
 pmm_manage_users: []
 # - user: xxx

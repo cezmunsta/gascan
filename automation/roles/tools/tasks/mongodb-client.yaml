@@ -1,0 +1,27 @@
+---
+- name: Prepare the MongoDB container image
+  ansible.builtin.include_role:
+    name: container
+  vars:
+    container_image: '{{ tools_mongodb_image }}:{{ tools_mongodb_image_tag }}'
+
+- name: Check for tools_mongodb_conf
+  ansible.builtin.stat:
+    path: '{{ tools_mongodb_conf }}'
+  register: tools_stat_mongodb_conf
+
+- name: Ensure that the mounted files exist
+  ansible.builtin.copy:
+    dest: '{{ tools_mongodb_conf }}'
+    content: >
+      # This file is unmanaged
+  when: not tools_stat_mongodb_conf.stat.exists
+
+- name: Add alias for MongoDB CLI
+  ansible.builtin.lineinfile:
+    path: '{{ tools_profile_path }}'
+    create: yes
+    line: "alias mongo{{ tools_mongodb_image_tag }}='podman run --rm -it --entrypoint=mongo -v {{ tools_mongodb_conf }}:/home/mongodb/{{ tools_mongodb_conf | basename }}:z {{ tools_mongodb_image }}:{{ tools_mongodb_image_tag }}'"
+    owner: '{{ ansible_env.USER }}'
+    mode: u=rw,g=r,o=
+...
