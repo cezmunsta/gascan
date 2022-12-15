@@ -1,10 +1,3 @@
 ---
-tools_percona_toolkit_dependencies:
-  - perl
-  - libdbi-perl
-  - libdbd-mysql-perl
-  - libterm-readkey-perl
-  - libio-socket-ssl-perl
-
 tools_percona_release_dependencies:
   - gnupg2
