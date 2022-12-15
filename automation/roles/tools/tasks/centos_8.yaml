@@ -1,19 +1,24 @@
 ---
 - name: Install extra tools
   ansible.builtin.package:
-    name: "{{ item }}"
+    name: "{{ tools_packages }}"
     state: present
-  with_items:
-    - "{{ tools_packages }}"
+  become: yes
+  tags:
+    - sudo
+
+- name: Add percona gpg rpm key
+  ansible.builtin.rpm_key:
+    state: present
+    key: "{{ tools_percona_gpg_key_url }}"
   become: yes
   tags:
     - sudo
 
 - name: Install percona-release package
   ansible.builtin.package:
-    name: https://repo.percona.com/yum/percona-release-latest.noarch.rpm
+    name: "{{ tools_percona_release_url }}"
     state: present
-    disable_gpg_check: yes
   become: yes
   tags:
     - sudo

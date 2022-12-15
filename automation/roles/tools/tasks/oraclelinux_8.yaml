@@ -1,10 +1,8 @@
 ---
 - name: Install extra tools
   ansible.builtin.package:
-    name: "{{ item }}"
+    name: "{{ tools_packages }}"
     state: present
-  with_items:
-    - "{{ tools_packages }}"
   become: yes
   tags:
     - sudo
