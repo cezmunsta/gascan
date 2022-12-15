@@ -7,8 +7,10 @@ After=time-sync.target
 
 [Service]
 Type=simple
+{% if not container_rootless %}
 User={{ container_service.user | default(ansible_env.SUDO_UID) }}
 Group={{ container_service.group | default(ansible_env.SUDO_GID) }}
+{% endif %}
 SuccessExitStatus=0 125
 ExecStartPre=/usr/bin/bash -c '/usr/bin/podman stop -t 10 {{ container_service.name }} || true; /usr/bin/podman rm -f {{ container_service.name }} || true'
 ExecStart=/usr/bin/podman run --rm --name={{ container_service.name }} --env-file="{{ container_env_file }}" {{ container_healthcheck | default('') }} {{ container_service.extra_args | default('') }} {{ container_image }}

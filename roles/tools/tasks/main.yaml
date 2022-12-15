@@ -5,6 +5,15 @@
   tags:
     - kubectl
 
+- name: Install MongoDB clients
+  ansible.builtin.include_tasks: mongodb-client.yaml
+  vars:
+    tools_mongodb_image_tag: '{{ item }}'
+  loop: '{{ tools_mongodb_versions }}'
+  when: tools_mongodb_install
+  tags:
+    - mongodb
+
 - name: Install MySQL clients
   ansible.builtin.include_tasks: mysql-client.yaml
   vars:

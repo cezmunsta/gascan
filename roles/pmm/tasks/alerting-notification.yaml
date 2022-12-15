@@ -20,7 +20,7 @@
 - ansible.builtin.include_tasks: alerting-create-policies.yaml
   vars:
     pmm_policy_item: '{{ item }}'
-  loop: "{{ notification_services }}"
+  loop: "{{ pmm_notification_services }}"
 
 - name: Add New Notification Policy
   ansible.builtin.uri:

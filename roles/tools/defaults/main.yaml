@@ -13,6 +13,15 @@ tools_kubectl_required: false
 tools_kubectl_image: docker.io/bitnami/kubectl
 tools_kubectl_image_tag: 1.25
 
+tools_mongodb_conf: "{{ ansible_env.HOME }}/.mongorc.js"
+tools_mongodb_image: docker.io/percona/percona-server-mongodb
+tools_mongodb_install: "{{ 'mongodb' in groups and groups['mongodb'] | length > 0 }}"
+tools_mongodb_versions:
+  - 4.2
+  - 4.4
+  - 5.0
+  - 6.0
+
 tools_mysql_conf: "{{ ansible_env.HOME }}/.mylogin.cnf"
 tools_mysql_image: docker.io/percona/percona-server
 tools_mysql_install: "{{ 'mysql' in groups and groups['mysql'] | length > 0 }}"

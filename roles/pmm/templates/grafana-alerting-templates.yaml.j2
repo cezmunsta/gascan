@@ -1,22 +1,1341 @@
 templates:
-   - name: managed_service_mysql_down
-     version: 1
-     summary: MySQL down
-     expr: sum by (service_name, node_name) (mysql_up) == 0
-     for: 1m
-     severity: critical
-     annotations:
-       summary: MySQL down
-       description: MySQL  is down.
-
-   - name: managed_service_VmalertAlertsError
-     version: 1
-     summary: VmalertAlertsError
+   - name: {{ pmm_templates_prefix }}VmalertAlertsError
      expr: vmalert_alerts_error > 0
-     for: 1m
+     summary: {{ pmm_templates_prefix }}VmalertAlertsError
+     version: 1
+     for: {{ pmm_alertmanager_rule_periods.med_interval }}{{ pmm_alertmanager_rule_periods.interval_unit }}
      severity: critical
+     labels:
+        service: generic
+        runbook: {{ pmm_alerting_runbook_path }}#VmalertAlertsError
      annotations:
      {% raw %}
        summary: "Sending Vmalert alerts error to Kibana."
        description: "Sending Vmalert alerts error to Kibana."
+     {% endraw %}
+
+   - name: {{ pmm_templates_prefix }}DiskSpaceWarning
+     summary: {{ pmm_templates_prefix }}DiskSpaceWarning
+     version: 1
+     expr: ((node_filesystem_avail_bytes{fstype!~"^(tmpfs|fuse.*|rootfs|selinuxfs|autofs|rpc_pipefs)$"} * 100) / node_filesystem_size_bytes <= [[ .threshold ]] and (ttf(node_filesystem_avail_bytes{fstype!~"^(tmpfs|fuse.*|rootfs|selinuxfs|autofs|rpc_pipefs)$"}[10d]) / (60*60*24)) < 10) or (node_filesystem_avail_bytes{fstype!~"^(tmpfs|fuse.*|rootfs|selinuxfs|autofs|rpc_pipefs)$"} * 100) / node_filesystem_size_bytes <= 5
+     for: {{ pmm_alertmanager_rule_periods.med_interval }}{{ pmm_alertmanager_rule_periods.interval_unit }}
+     severity: warning
+     params:
+         - name: threshold
+           summary: A percentage from configured maximum
+           unit: "%"
+           type: float
+           range: [0, 100]
+           value: {{ pmm_alertmanager_thr_DiskSpaceWarning }}
+     labels:
+        service: generic
+        runbook: {{ pmm_alerting_runbook_path }}#DiskSpaceWarning
+     annotations:
+     {% raw %}
+        summary: "Warning - Instance is running out of space soon. - {{ $labels.mountpoint }} on (instance {{ $labels.node_name }})."
+        description: "Free up some space or enlarge the device"
+     {% endraw %}
+
+   - name: {{ pmm_templates_prefix }}DiskSpaceCritical
+     expr: ((node_filesystem_avail_bytes{fstype!~"^(tmpfs|fuse.*|rootfs|selinuxfs|autofs|rpc_pipefs)$"} * 100) / node_filesystem_size_bytes <= [[ .threshold ]] and (ttf(node_filesystem_avail_bytes{fstype!~"^(tmpfs|fuse.*|rootfs|selinuxfs|autofs|rpc_pipefs)$"}[10d]) / (60*60*24)) < 10) or (node_filesystem_avail_bytes{fstype!~"^(tmpfs|fuse.*|rootfs|selinuxfs|autofs|rpc_pipefs)$"} * 100) / node_filesystem_size_bytes <= 5
+     summary: {{ pmm_templates_prefix }}DiskSpaceCritical
+     version: 1
+     for: {{ pmm_alertmanager_rule_periods.med_interval }}{{ pmm_alertmanager_rule_periods.interval_unit }}
+     severity: critical
+     params:
+         - name: threshold
+           summary: A percentage from configured maximum
+           unit: "%"
+           type: float
+           range: [0, 100]
+           value: {{ pmm_alertmanager_thr_DiskSpaceCritical }}
+     labels:
+        service: generic
+        runbook: {{ pmm_alerting_runbook_path }}#DiskSpaceCritical
+     annotations:
+     {% raw %}
+        summary: "Critical - Instance is running out of space. - {{ $labels.mountpoint }} on (instance {{ $labels.node_name }}}) ."
+        description: "Disk is almost full ( {{ $labels.mountpoint }} )"
+     {% endraw %}
+
+   - name: {{ pmm_templates_prefix }}NodeLowFreeMemory
+     expr: 100*(node_memory_availabe or (node_memory_MemFree_bytes+node_memory_Buffers_bytes+node_memory_Cached_bytes))/node_memory_MemTotal_bytes < [[ .threshold ]]
+     summary: {{ pmm_templates_prefix }}NodeLowFreeMemory
+     version: 1
+     for: {{ pmm_alertmanager_rule_periods.med_interval }}{{ pmm_alertmanager_rule_periods.interval_unit }}
+     severity: critical
+     params:
+         - name: threshold
+           summary: A percentage from configured maximum
+           unit: "%"
+           type: float
+           range: [0, 100]
+           value: 8
+     labels:
+        service: generic
+        runbook: {{ pmm_alerting_runbook_path }}#NodeLowFreeMemory
+     annotations:
+     {% raw %}
+        summary: "CRITICAL - The amount of free memory on the host is very low (instance {{ $labels.node_name }})"
+        description: "Check which processes are using the memory (RSS).  If the top one is mysqld, lower a bit the innodb_buffer_pool_size."
+     {% endraw %}
+
+   - name: {{ pmm_templates_prefix }}NodeLowFreeMemoryTrend
+     expr: mysql_global_status_uptime > 3600 and 100*(predict_linear(node_memory_MemAvailable_bytes[1h], 120*60) or (predict_linear(node_memory_MemFree_bytes[1h], 120*60) + predict_linear(node_memory_Buffers_bytes[1h], 120*60) + predict_linear(node_memory_Cached_bytes[1h], 120*60)))/node_memory_MemTotal_bytes < [[ .threshold ]]
+     summary: {{ pmm_templates_prefix }}NodeLowFreeMemoryTrend
+     version: 1
+     for: {{ pmm_alertmanager_rule_periods.med_interval }}{{ pmm_alertmanager_rule_periods.interval_unit }}
+     severity: critical
+     params:
+         - name: threshold
+           summary: A percentage from configured maximum
+           unit: "%"
+           type: float
+           range: [0, 100]
+           value: 5
+     labels:
+        service: generic
+        runbook: {{ pmm_alerting_runbook_path }}#NodeLowFreeMemoryTrend
+     annotations:
+     {% raw %}
+        summary: "CRITICAL - The memory usage is increasing on (instance {{ $labels.node_name }}), at the current rate, available memory will below 5 percent in 2 hours"
+        description: "Check which processes are increasing their memory usage (RSS).  If MySQL has been restarted recently, this could be normal."
+     {% endraw %}
+
+   - name: {{ pmm_templates_prefix }}NodeIOUtilization
+     expr: rate(node_disk_io_time_ms[1m]) > [[ .threshold ]]
+     summary: {{ pmm_templates_prefix }}NodeIOUtilization
+     version: 1
+     for: {{ pmm_alertmanager_rule_periods.high_interval }}{{ pmm_alertmanager_rule_periods.interval_unit }}
+     severity: critical
+     params:
+         - name: threshold
+           summary: A percentage from configured maximum
+           unit: "%"
+           type: float
+           range: [0, 1000]
+           value: {{ pmm_alertmanager_thr_NodeIOUtilization }}
+     labels:
+        service: generic
+        runbook: {{ pmm_alerting_runbook_path }}#NodeIOUtilization
+     annotations:
+     {% raw %}
+        summary: "CRITICAL - storage on (instance {{ $labels.node_name }}) spent more than 95 percent of its time busy"
+        description: "Check if a process is not using the disk too heavily"
+     {% endraw %}
+
+   - name: {{ pmm_templates_prefix }}NodeCpuUtilization
+     expr: (1-sum(rate(node_cpu_seconds_total{mode='idle'}[1m])) by (node_name)/count(node_cpu_seconds_total{mode='idle'}) by (node_name))*100 > [[ .threshold ]]
+     summary: {{ pmm_templates_prefix }}NodeCpuUtilization
+     version: 1
+     for: {{ pmm_alertmanager_rule_periods.high_interval }}{{ pmm_alertmanager_rule_periods.interval_unit }}
+     severity: critical
+     params:
+         - name: threshold
+           summary: A percentage from configured maximum
+           unit: "%"
+           type: float
+           range: [0, 100]
+           value: 90
+     labels:
+        service: generic
+        runbook: {{ pmm_alerting_runbook_path }}#NodeCpuUtilization
+     annotations:
+     {% raw %}
+        summary: "CRITICAL - CPU usage on (instance {{ $labels.node_name }}) is above 80 percent"
+        description: "Check if a process is not using too much CPU"
+     {% endraw %}
+
+   - name: {{ pmm_templates_prefix }}NodeLoad
+     expr: max_over_time(node_load1[2m])  / on (node_name) (count(node_cpu_seconds_total{mode="idle"}) by (node_name)) > [[ .threshold ]]
+     summary: {{ pmm_templates_prefix }}NodeLoad
+     version: 1
+     for: {{ pmm_alertmanager_rule_periods.high_interval }}{{ pmm_alertmanager_rule_periods.interval_unit }}
+     severity: critical
+     params:
+         - name: threshold
+           summary: A percentage from configured maximum
+           unit: "%"
+           type: float
+           range: [0, 100]
+           value: 20
+     labels:
+        service: generic
+        runbook: {{ pmm_alerting_runbook_path }}#NodeLoad
+     annotations:
+     {% raw %}
+        summary: "CRITICAL - The normalized 1 minute load average on (instance {{ $labels.node_name }}) is higher than 3"
+        description: "Check if a process is not using too much CPU or blocked"
+     {% endraw %}
+
+   - name: {{ pmm_templates_prefix }}NodeNetworkErrors
+     expr: 100*sum(rate(node_network_transmit_errs_total[1m])+rate(node_network_receive_errs_total[1m])) by (node_name) / on (node_name) sum(rate(node_network_transmit_packets_total[1m])+rate(node_network_receive_packets_total[1m])) by (node_name) > [[ .threshold ]]
+     summary: {{ pmm_templates_prefix }}NodeNetworkErrors
+     version: 1
+     for: {{ pmm_alertmanager_rule_periods.high_interval }}{{ pmm_alertmanager_rule_periods.interval_unit }}
+     severity: critical
+     params:
+         - name: threshold
+           summary: A percentage from configured minimum
+           unit: "%"
+           type: float
+           range: [0, 100]
+           value: 5
+     labels:
+        service: generic
+        runbook: {{ pmm_alerting_runbook_path }}#NodeNetworkErrors
+     annotations:
+     {% raw %}
+        summary: "CRITICAL - There has been more than 5 percent of network errors on (instance {{ $labels.node_name }}) over the last minute"
+        description: "Investigate the source of the network errors"
+     {% endraw %}
+
+   - name: {{ pmm_templates_prefix }}StaleBackup
+     expr: time() -  msp_backup_last_report_ts{type!~"Oplog|Binlogs"} > [[ .threshold ]] and on(type, alias) msp_backup_enabled == 1
+     summary: {{ pmm_templates_prefix }}StaleBackup
+     version: 1
+     for: {{ pmm_alertmanager_rule_periods.med_interval }}{{ pmm_alertmanager_rule_periods.interval_unit }}
+     severity: critical
+     params:
+         - name: threshold
+           summary: A percentage from configured minimum
+           unit: "%"
+           type: float
+           range: [0, 1000000]
+           value: {{ pmm_alertmanager_thr_StaleBackup }}
+     labels:
+        service: backup
+        runbook: {{ pmm_alerting_runbook_path }}#StaleBackup
+     annotations:
+     {% raw %}
+        summary: "CRITICAL - There is no {{ $labels.type }} backup on {{ $labels.alias }} node in the last 26h."
+        description: "Check backup process and backup log files."
+     {% endraw %}
+
+   - name: {{ pmm_templates_prefix }}StaleUpload
+     expr: time() - msp_upload_last_report_ts{type!~"Oplog|Binlogs"} > [[ .threshold ]] and on(type, alias) msp_upload_enabled == 1
+     summary: {{ pmm_templates_prefix }}StaleUpload
+     version: 1
+     for: {{ pmm_alertmanager_rule_periods.med_interval }}{{ pmm_alertmanager_rule_periods.interval_unit }}
+     severity: critical
+     params:
+         - name: threshold
+           summary: A percentage from configured minimum
+           unit: "%"
+           type: float
+           range: [0, 1000000]
+           value: {{ pmm_alertmanager_thr_StaleUpload }}
+     labels:
+        service: backup
+        runbook: {{ pmm_alerting_runbook_path }}#StaleUpload
+     annotations:
+     {% raw %}
+        summary: "CRITICAL - There is no {{ $labels.type }} upload on {{ $labels.alias }} node in the last 26h."
+        description: "Check backup process and upload log files."
+     {% endraw %}
+
+   - name: {{ pmm_templates_prefix }}StaleUploadLog
+     expr: time() -  msp_upload_last_report_ts{type=~"Oplog|Binlogs"} > [[ .threshold ]] and on(type, alias) msp_upload_enabled == 1
+     summary: {{ pmm_templates_prefix }}StaleUploadLog
+     version: 1
+     for: {{ pmm_alertmanager_rule_periods.med_interval }}{{ pmm_alertmanager_rule_periods.interval_unit }}
+     severity: critical
+     params:
+         - name: threshold
+           summary: A percentage from configured minimum
+           unit: "%"
+           type: float
+           range: [0, 1000000]
+           value: {{ pmm_alertmanager_thr_StaleUploadLog }}
+     labels:
+        service: backup
+        runbook: {{ pmm_alerting_runbook_path }}#StaleUploadLog
+     annotations:
+     {% raw %}
+        summary: "CRITICAL - There is no {{ $labels.type }} upload on {{ $labels.alias }} node in the last 1h."
+        description: "Check backup process and upload log files."
+     {% endraw %}
+
+   - name: {{ pmm_templates_prefix }}StaleBackupLog
+     expr: time() -  msp_backup_last_report_ts{type=~"Oplog|Binlogs"} > [[ .threshold ]] and on(type, alias) msp_backup_enabled == 1
+     summary: {{ pmm_templates_prefix }}StaleBackupLog
+     version: 1
+     for: {{ pmm_alertmanager_rule_periods.med_interval }}{{ pmm_alertmanager_rule_periods.interval_unit }}
+     severity: critical
+     params:
+         - name: threshold
+           summary: A percentage from configured minimum
+           unit: "%"
+           type: float
+           range: [0, 100000]
+           value: {{ pmm_alertmanager_thr_StaleBackupLog }}
+     labels:
+        service: backup
+        runbook: {{ pmm_alerting_runbook_path }}#StaleBackupLog
+     annotations:
+     {% raw %}
+        summary: "CRITICAL - There is no {{ $labels.type }} backup on {{ $labels.alias }} node in the last 1h."
+        description: "Check backup process and backup log files."
+     {% endraw %}
+
+   - name: {{ pmm_templates_prefix }}BackupFailed
+     expr: msp_backup_status > 0 and on(type, alias) msp_backup_enabled == 1
+     summary: {{ pmm_templates_prefix }}BackupFailed
+     version: 1
+     for: {{ pmm_alertmanager_rule_periods.med_interval }}{{ pmm_alertmanager_rule_periods.interval_unit }}
+     severity: critical
+     labels:
+        service: backup
+        runbook: {{ pmm_alerting_runbook_path }}#BackupFailed
+     annotations:
+     {% raw %}
+        summary: "CRITICAL - The {{ $labels.type }} backup is failed on (instance {{ $labels.alias }}) node."
+        description: "Check backup process and backup log files."
+     {% endraw %}
+
+   - name: {{ pmm_templates_prefix }}CPUSaturationRDS
+     expr: rate(aws_rds_cpu_credit_usage_average[5m]) > [[ .threshold ]]
+     summary: {{ pmm_templates_prefix }}CPUSaturationRDS
+     version: 1
+     for: {{ pmm_alertmanager_rule_periods.low_interval }}{{ pmm_alertmanager_rule_periods.interval_unit }}
+     severity: critical
+     params:
+         - name: threshold
+           summary: A percentage from configured minimum
+           unit: "%"
+           type: float
+           range: [0, 100]
+           value: {{ pmm_alertmanager_thr_CPUSaturationRDS }}
+     labels:
+        service: generic
+        runbook: {{ pmm_alerting_runbook_path }}#CPUSaturationRDS
+     annotations:
+     {% raw %}
+        summary: "CRITICAL - The RDS Instance on (instance {{ $labels.node_name }}) is saturating, reflected by CPU credits usage"
+        description: "Check the active transactions"
+     {% endraw %}
+
+   - name: {{ pmm_templates_prefix }}MySQLScrapingIssues
+     expr: rate(scrape_samples_scraped{service_type="mysql", job=~"mysqld_exporter_agent.*hr-5s"}[1m]) > [[ .threshold ]]
+     summary: {{ pmm_templates_prefix }}MySQLScrapingIssues
+     version: 1
+     for: {{ pmm_alertmanager_rule_periods.low_interval }}{{ pmm_alertmanager_rule_periods.interval_unit }}
+     severity: critical
+     params:
+         - name: threshold
+           summary: A percentage from configured minimum
+           unit: "%"
+           type: float
+           range: [0, 100]
+           value: 0.15
+     labels:
+        service: mysql
+        runbook: {{ pmm_alerting_runbook_path }}#MySQLScrapingIssues
+     annotations:
+     {% raw %}
+        summary: "CRITICAL - The MySQL exporter is showing signs of issues (instance {{ $labels.node_name }})"
+        description: "The exporter behaviour looks odd and is changing. Please investigate"
+     {% endraw %}
+
+   - name: {{ pmm_templates_prefix }}MySQLInstanceNotAvailable
+     expr: sum by (service_name, node_name) (mysql_up) == bool 0
+     summary: {{ pmm_templates_prefix }}MySQLInstanceNotAvailable
+     version: 1
+     for: {{ pmm_alertmanager_rule_periods.med_interval }}{{ pmm_alertmanager_rule_periods.interval_unit }}
+     severity: critical
+     labels:
+        service: mysql
+        runbook: {{ pmm_alerting_runbook_path }}#MySQLInstanceNotAvailable
+     annotations:
+     {% raw %}
+        summary: "CRITICAL - The MySQL service is unreachable (instance {{ $labels.node_name }})"
+        description: "The mysqld service appears to be down, or unreachable. Please investigate"
+     {% endraw %}
+
+   - name: {{ pmm_templates_prefix }}MySQLTooManyConnections
+     expr: mysql_global_status_threads_connected / on (node_name) mysql_global_variables_max_connections * 100 > [[ .threshold ]]
+     summary: {{ pmm_templates_prefix }}MySQLTooManyConnections
+     version: 1
+     for: {{ pmm_alertmanager_rule_periods.med_interval }}{{ pmm_alertmanager_rule_periods.interval_unit }}
+     severity: critical
+     params:
+         - name: threshold
+           summary: A percentage from configured minimum
+           unit: "%"
+           type: float
+           range: [0, 100]
+           value: 95
+     labels:
+        service: mysql
+        runbook: {{ pmm_alerting_runbook_path }}#MySQLTooManyConnections
+     annotations:
+     {% raw %}
+        summary: "CRITICAL - MySQL has too many connections on (instance {{ $labels.node_name }})"
+        description: "The server has too many connections. Over the last minute, {{ $value }} percent was used"
+     {% endraw %}
+
+   - name: {{ pmm_templates_prefix }}MySQLWillOverloadConnectionsSoon
+     expr: (predict_linear(mysql_global_status_threads_connected[2m], 60 * 30) / on (node_name) mysql_global_variables_max_connections) * 100 > [[ .threshold ]]
+     summary: {{ pmm_templates_prefix }}MySQLWillOverloadConnectionsSoon
+     version: 1
+     for: {{ pmm_alertmanager_rule_periods.med_interval }}{{ pmm_alertmanager_rule_periods.interval_unit }}
+     severity: critical
+     params:
+         - name: threshold
+           summary: A percentage from configured minimum
+           unit: "%"
+           type: float
+           range: [0, 100]
+           value: 90
+     labels:
+        service: mysql
+        runbook: {{ pmm_alerting_runbook_path }}#MySQLWillOverloadConnectionsSoon
+     annotations:
+     {% raw %}
+        summary: "CRITICAL - MySQL will overload connections soon on (instance {{ $labels.node_name }})"
+        description: "The server will reach its connection limit in less than 30 minutes, check why connections are not released."
+     {% endraw %}
+
+   - name: {{ pmm_templates_prefix }}MySQLTableLockWaitHigh
+     expr: (100 * mysql_global_status_table_locks_waited)/(mysql_global_status_table_locks_waited + mysql_global_status_table_locks_immediate) > [[ .threshold ]]
+     summary: {{ pmm_templates_prefix }}MySQLTableLockWaitHigh
+     version: 1
+     for: {{ pmm_alertmanager_rule_periods.high_interval }}{{ pmm_alertmanager_rule_periods.interval_unit }}
+     severity: critical
+     params:
+         - name: threshold
+           summary: A percentage from configured minimum
+           unit: "%"
+           type: float
+           range: [0, 100]
+           value: 60
+     labels:
+        service: mysql
+        runbook: {{ pmm_alerting_runbook_path }}#MySQLTableLockWaitHigh
+     annotations:
+     {% raw %}
+        summary: "CRITICAL - MySQL has high table locks"
+        description: "MYSQL has high table lock waits of {{ $value }} percent"
+     {% endraw %}
+
+   - name: {{ pmm_templates_prefix }}MySQLInnoDBCheckpointAge
+     expr: 100*avg_over_time(mysql_global_status_innodb_checkpoint_age[1m])/mysql_global_status_innodb_checkpoint_max_age > [[ .threshold ]]
+     summary: {{ pmm_templates_prefix }}MySQLInnoDBCheckpointAge
+     version: 1
+     for: {{ pmm_alertmanager_rule_periods.low_interval }}{{ pmm_alertmanager_rule_periods.interval_unit }}
+     severity: critical
+     params:
+         - name: threshold
+           summary: A percentage from configured minimum
+           unit: "%"
+           type: float
+           range: [0, 100]
+           value: 90
+     labels:
+        service: mysql
+        runbook: {{ pmm_alerting_runbook_path }}#MySQLInnoDBCheckpointAge
+     annotations:
+     {% raw %}
+        summary: "CRITICAL - InnoDB checkpoint age is high on (instance {{ $labels.node_name }})"
+        description: "The InnoDB checkpoint age has been over {{ $value }} percent for the last minute. Common issues could be server IO problems, transactions left open for a long time and too small InnoDB log files."
+     {% endraw %}
+
+   - name: {{ pmm_templates_prefix }}MySQLInnoDBFlushingSaturationCritical
+     expr: 100*rate(mysql_global_status_innodb_data_writes[30m]) / on (node_name) avg_over_time(mysql_global_variables_innodb_io_capacity_max[30m]) > [[ .threshold ]]
+     summary: {{ pmm_templates_prefix }}MySQLInnoDBFlushingSaturationCritical
+     version: 1
+     for: {{ pmm_alertmanager_rule_periods.low_interval }}{{ pmm_alertmanager_rule_periods.interval_unit }}
+     severity: critical
+     params:
+         - name: threshold
+           summary: A percentage from configured minimum
+           unit: "%"
+           type: float
+           range: [0, 100]
+           value: 90
+     labels:
+        service: mysql
+        runbook: {{ pmm_alerting_runbook_path }}#MySQLInnoDBFlushingSaturationCritical
+     annotations:
+     {% raw %}
+        summary: "CRITICAL - InnoDB has been flushing pages at a rate close to the max on (instance {{ $labels.node_name }}) over the last minute"
+        description: "The InnoDB flushing rate is too high, either enlarge innodb_log_file_size or, if there is spare IO capacity, raise innodb_io_capacity_max."
+     {% endraw %}
+
+   - name: {{ pmm_templates_prefix }}MySQLTableOpen
+     expr: rate(mysql_global_status_open_tables[5m])/ on (node_name) mysql_global_variables_innodb_io_capacity > [[ .threshold ]]
+     summary: {{ pmm_templates_prefix }}MySQLTableOpen
+     version: 1
+     for: {{ pmm_alertmanager_rule_periods.high_interval }}{{ pmm_alertmanager_rule_periods.interval_unit }}
+     severity: critical
+     params:
+         - name: threshold
+           summary: A percentage from configured minimum
+           unit: "%"
+           type: float
+           range: [0, 100]
+           value: 0.3
+     labels:
+        service: mysql
+        runbook: {{ pmm_alerting_runbook_path }}#MySQLTableOpen
+     annotations:
+     {% raw %}
+        summary: "CRITICAL - MySQL is opening too many tables on (instance {{ $labels.node_name }})"
+        description: "MySQL is opening too many tables, either increase table_open_cache or, lower table_open_cache_instances.  Check the mysqld ulimits (nofile) is greater than table_open_cache as if reached, it could freeze MySQL"
+     {% endraw %}
+
+   - name: {{ pmm_templates_prefix }}MySQLTableOpenDefinition
+     expr: rate(mysql_global_status_opened_table_definitions[5m])/ on (node_name) mysql_global_variables_innodb_io_capacity > [[ .threshold ]]
+     summary: {{ pmm_templates_prefix }}MySQLTableOpenDefinition
+     version: 1
+     for: {{ pmm_alertmanager_rule_periods.high_interval }}{{ pmm_alertmanager_rule_periods.interval_unit }}
+     severity: critical
+     params:
+         - name: threshold
+           summary: A percentage from configured minimum
+           unit: "%"
+           type: float
+           range: [0, 100]
+           value: 0.15
+     labels:
+        service: mysql
+        runbook: {{ pmm_alerting_runbook_path }}#MySQLTableOpenDefinition
+     annotations:
+     {% raw %}
+        summary: "CRITICAL - MySQL is opening too many table definitions on (instance {{ $labels.node_name }})"
+        description: "MySQL is opening too many table defintions, try increasing table_open_definition_cache"
+     {% endraw %}
+
+   - name: {{ pmm_templates_prefix }}MySQLThreadCreate
+     expr: rate(mysql_global_status_threads_created[1m]) > [[ .threshold ]]
+     summary: {{ pmm_templates_prefix }}MySQLThreadCreate
+     version: 1
+     for: {{ pmm_alertmanager_rule_periods.med_interval }}{{ pmm_alertmanager_rule_periods.interval_unit }}
+     severity: critical
+     params:
+         - name: threshold
+           summary: A threshold configured per second
+           unit: "%"
+           type: float
+           range: [0, 100]
+           value: 10
+     labels:
+        service: mysql
+        runbook: {{ pmm_alerting_runbook_path }}#MySQLThreadCreate
+     annotations:
+     {% raw %}
+        summary: "CRITICAL - MySQL is creating more than 10 threads per second on (instance {{ $labels.node_name }})"
+        description: "MySQL is creating more than 10 thread per second, increase thread_cache_size"
+     {% endraw %}
+
+   - name: {{ pmm_templates_prefix }}MySQLRowLockTime
+     expr: rate(mysql_global_status_innodb_row_lock_time[1m])/on (node_name) (count(node_cpu_seconds_total{mode='idle'}) by (node_name)) > [[ .threshold ]]
+     summary: {{ pmm_templates_prefix }}MySQLRowLockTime
+     version: 1
+     for: {{ pmm_alertmanager_rule_periods.high_interval }}{{ pmm_alertmanager_rule_periods.interval_unit }}
+     severity: critical
+     params:
+         - name: threshold
+           summary: A numeric value of the maximum Row Lock Time.
+           unit: "%"
+           type: float
+           range: [0, 1000]
+           value: 150
+     labels:
+        service: mysql
+        runbook: {{ pmm_alerting_runbook_path }}#MySQLRowLockTime
+     annotations:
+     {% raw %}
+        summary: "CRITICAL - The row lock time on (instance {{ $labels.node_name }}) is at $value ms per core"
+        description: "Check if there are unusual queries running."
+     {% endraw %}
+
+   - name: {{ pmm_templates_prefix }}MySQLThreadBlockedTime
+     expr: avg_over_time(mysql_info_schema_threads_seconds{state="waiting for lock"}[1m])/on (node_name) (count(node_cpu_seconds_total{mode='idle'}) by (node_name)) > [[ .threshold ]]
+     summary: {{ pmm_templates_prefix }}MySQLThreadBlockedTime
+     version: 1
+     for: {{ pmm_alertmanager_rule_periods.med_interval }}{{ pmm_alertmanager_rule_periods.interval_unit }}
+     severity: critical
+     params:
+         - name: threshold
+           summary: A percentage from configured minimum
+           unit: "%"
+           type: float
+           range: [0, 100]
+           value: 0.1
+     labels:
+        service: mysql
+        runbook: {{ pmm_alerting_runbook_path }}#MySQLThreadBlockedTime
+     annotations:
+     {% raw %}
+        summary: "WARNING - MySQL threads on (instance {{ $labels.node_name }}) spend more than 10 percent of the waiting of a lock"
+        description: "Check if there are unusual queries running."
+     {% endraw %}
+
+   - name: {{ pmm_templates_prefix }}MySQLNumThreadBlocked
+     expr: avg_over_time(mysql_info_schema_threads_seconds{state="waiting for lock"}[1m])/on (node_name) (count(node_cpu_seconds_total{mode='idle'}) by (node_name)) > [[ .threshold ]]
+     summary: {{ pmm_templates_prefix }}MySQLNumThreadBlocked
+     version: 1
+     for: {{ pmm_alertmanager_rule_periods.high_interval }}{{ pmm_alertmanager_rule_periods.interval_unit }}
+     severity: critical
+     params:
+         - name: threshold
+           summary: A percentage from configured minimum
+           unit: "%"
+           type: float
+           range: [0, 100]
+           value: 0.4
+     labels:
+        service: mysql
+        runbook: {{ pmm_alerting_runbook_path }}#MySQLNumThreadBlocked
+     annotations:
+     {% raw %}
+        summary: "CRITICAL - MySQL threads on (instance {{ $labels.node_name }}) spend more than 10 percent of the waiting of a lock"
+        description: "Check if there are unusual queries running."
+     {% endraw %}
+
+   - name: {{ pmm_templates_prefix }}MySQLTooManyRowsRead
+     expr: rate(mysql_global_status_innodb_row_ops_total{operation="read"}[5m]) / on (node_name) (count(node_cpu_seconds_total{mode='idle'}) by (node_name)) > [[ .threshold ]]
+     summary: {{ pmm_templates_prefix }}MySQLTooManyRowsRead
+     version: 1
+     for: {{ pmm_alertmanager_rule_periods.high_interval }}{{ pmm_alertmanager_rule_periods.interval_unit }}
+     severity: critical
+     params:
+         - name: threshold
+           summary: A numeric value for rows read by MySQL
+           unit: "%"
+           type: float
+           range: [0, 10000000]
+           value: 700000
+     labels:
+        service: mysql
+        runbook: {{ pmm_alerting_runbook_path }}#MySQLTooManyRowsRead
+     annotations:
+     {% raw %}
+        summary: "CRITICAL - MySQL is reading more than 700k rows per core on (instance {{ $labels.node_name }})"
+        description: "Check which queries are reading too many rows"
+     {% endraw %}
+
+   - name: {{ pmm_templates_prefix }}MySQLTooManyThreadsRunning
+     expr: (avg_over_time(mysql_global_status_threads_running[1m]) - 2) / on (node_name) count(node_cpu_seconds_total{mode="idle"}) by (node_name) > [[ .threshold ]]
+     summary: {{ pmm_templates_prefix }}MySQLTooManyThreadsRunning
+     version: 1
+     for: {{ pmm_alertmanager_rule_periods.high_interval }}{{ pmm_alertmanager_rule_periods.interval_unit }}
+     severity: critical
+     params:
+         - name: threshold
+           summary: A numeric value from configured minimum
+           unit: "%"
+           type: float
+           range: [0, 100]
+           value: 3
+     labels:
+        service: mysql
+        runbook: {{ pmm_alerting_runbook_path }}#MySQLTooManyThreadsRunning
+     annotations:
+     {% raw %}
+        summary: "CRITICAL - MySQL has more than 3 threads running per core on (instance {{ $labels.node_name }})"
+        description: "Check why there are so many threads running"
+     {% endraw %}
+
+   - name: {{ pmm_templates_prefix }}MySQLQueryPileUp
+     expr: 100 * irate(mysql_global_status_threads_running[15s])/ on (node_name) min_over_time(mysql_global_status_threads_running[15s]) > [[ .threshold ]]
+     summary: {{ pmm_templates_prefix }}MySQLQueryPileUp
+     version: 1
+     for: {{ pmm_alertmanager_rule_periods.max_interval }}{{ pmm_alertmanager_rule_periods.interval_unit }}
+     severity: critical
+     params:
+         - name: threshold
+           summary: A numeric value from configured minimum
+           unit: "%"
+           type: float
+           range: [0, 100]
+           value: 15
+     labels:
+        service: mysql
+        runbook: {{ pmm_alerting_runbook_path }}#MySQLQueryPileUp
+     annotations:
+     {% raw %}
+        summary: "CRITICAL - The number of threads running is increasing very rapidly on (instance {{ $labels.node_name }})"
+        description: "Investigate the source of the network errors"
+     {% endraw %}
+
+   - name: {{ pmm_templates_prefix }}MySQLReplicaLag
+     expr: max_over_time(mysql_slave_status_seconds_behind_master[15s]) - max_over_time(mysql_slave_status_sql_delay[15s]) > [[ .threshold ]]
+     summary: {{ pmm_templates_prefix }}MySQLReplicaLag
+     version: 1
+     for: {{ pmm_alertmanager_rule_periods.low_interval }}{{ pmm_alertmanager_rule_periods.interval_unit }}
+     severity: critical
+     params:
+         - name: threshold
+           summary: A numeric value from configured minimum
+           unit: "%"
+           type: float
+           range: [0, 10000]
+           value: 120
+     labels:
+        service: mysql
+        runbook: {{ pmm_alerting_runbook_path }}#MySQLReplicaLag
+     annotations:
+     {% raw %}
+        summary: "CRITICAL - MySQL replication is lagging by more than 2 minutes on (instance {{ $labels.node_name }})"
+        description: "See what is blocking or slowing down replication"
+     {% endraw %}
+
+   - name: {{ pmm_templates_prefix }}MySQLReplicaIOThread
+     expr: min_over_time(mysql_slave_status_slave_io_running[15s]) < 0
+     summary: {{ pmm_templates_prefix }}MySQLReplicaIOThread
+     version: 1
+     for: {{ pmm_alertmanager_rule_periods.med_interval }}{{ pmm_alertmanager_rule_periods.interval_unit }}
+     severity: critical
+     labels:
+        service: mysql
+        runbook: {{ pmm_alerting_runbook_path }}#MySQLReplicaIOThread
+     annotations:
+     {% raw %}
+        summary: "WARNING - The MySQL Replication IO thread is stopped on (instance {{ $labels.node_name }}) for 5 minutes."
+        description: "Investigate why it is not connected to the primary"
+     {% endraw %}
+
+   - name: {{ pmm_templates_prefix }}MySQLReplicaSqlThread
+     expr: min_over_time(mysql_slave_status_slave_sql_running[15s]) < 0
+     summary: {{ pmm_templates_prefix }}MySQLReplicaSqlThread
+     version: 1
+     for: {{ pmm_alertmanager_rule_periods.med_interval }}{{ pmm_alertmanager_rule_periods.interval_unit }}
+     severity: critical
+     labels:
+        service: mysql
+        runbook: {{ pmm_alerting_runbook_path }}#MySQLReplicaSqlThread
+     annotations:
+     {% raw %}
+        summary: "CRITICAL - The MySQL Replication SQL thread is stopped on (instance {{ $labels.node_name }}) for 5 minutes."
+        description: "Investigate why it is stopped"
+     {% endraw %}
+
+   - name: {{ pmm_templates_prefix }}MySQLInnoDBFlushingSaturationWarning
+     expr: 100*rate(mysql_global_status_innodb_data_writes[5m])/ on (node_name) avg_over_time(mysql_global_variables_innodb_io_capacity_max[5m]) > [[ .threshold ]]
+     summary: {{ pmm_templates_prefix }}MySQLInnoDBFlushingSaturationWarning
+     version: 1
+     for: {{ pmm_alertmanager_rule_periods.low_interval }}{{ pmm_alertmanager_rule_periods.interval_unit }}
+     severity: warning
+     params:
+         - name: threshold
+           summary: A percentage from configured minimum
+           unit: "%"
+           type: float
+           range: [0, 100]
+           value: 60
+     labels:
+        service: mysql
+        runbook: {{ pmm_alerting_runbook_path }}#MySQLInnoDBFlushingSaturationWarning
+     annotations:
+     {% raw %}
+        summary: "WARNING - InnoDB has been flushing pages at a rate close to the max on (instance {{ $labels.node_name }}) over the last minute"
+        description: "The InnoDB flushing rate is high, either enlarge innodb_log_file_size or, if there is spare IO capacity, raise innodb_io_capacity_max."
+     {% endraw %}
+
+   - name: {{ pmm_templates_prefix }}MySQLReplicaReadOnly
+     expr: (avg_over_time(mysql_slave_status_slave_io_running[1m]) == 1 or on (node_name) avg_over_time(mysql_slave_status_slave_sql_running[1m]) == 1 or on (node_name) avg_over_time(mysql_perf_schema_replication_group_member_info{member_role="SECONDARY",member_state="ONLINE"})[1m]) and on (node_name) min_over_time(mysql_global_variables_read_only[1m]) == 0
+     summary: {{ pmm_templates_prefix }}MySQLReplicaReadOnly
+     version: 1
+     for: {{ pmm_alertmanager_rule_periods.low_interval }}{{ pmm_alertmanager_rule_periods.interval_unit }}
+     severity: warning
+     labels:
+        service: mysql
+        runbook: {{ pmm_alerting_runbook_path }}#MySQLReplicaReadOnly
+     annotations:
+     {% raw %}
+        summary: "WARNING - The MySQL on (instance {{ $labels.node_name }}) is a replica and is not read-only"
+        description: "It is assumed that replicas should be in Read Only mode so as to prevent possible data corruption."
+     {% endraw %}
+
+   - name: {{ pmm_templates_prefix }}MySQLDeadlock
+     expr: rate(mysql_info_schema_innodb_metrics_lock_lock_deadlocks_total[1s])> [[ .threshold ]]
+     summary: {{ pmm_templates_prefix }}MySQLDeadlock
+     version: 1
+     for: {{ pmm_alertmanager_rule_periods.low_interval }}{{ pmm_alertmanager_rule_periods.interval_unit }}
+     severity: warning
+     params:
+         - name: threshold
+           summary: A numeric value from configured minimum
+           unit: "%"
+           type: float
+           range: [0, 100]
+           value: 1
+     labels:
+        service: mysql
+        runbook: {{ pmm_alerting_runbook_path }}#MySQLDeadlock
+     annotations:
+     {% raw %}
+        summary: "WARNING - The MySQL on (instance {{ $labels.node_name }}) is facing a Deadlock"
+        description: "Review the conflict with the transaction"
+     {% endraw %}
+
+   - name: {{ pmm_templates_prefix }}MySQLAutoIncrementExhaustion
+     expr: (mysql_info_schema_auto_increment_column*100/mysql_info_schema_auto_increment_column_max) > [[ .threshold ]]
+     summary: {{ pmm_templates_prefix }}MySQLAutoIncrementExhaustion
+     version: 1
+     for: {{ pmm_alertmanager_rule_periods.low_interval }}{{ pmm_alertmanager_rule_periods.interval_unit }}
+     severity: critical
+     params:
+         - name: threshold
+           summary: A percentage from configured maximum
+           unit: "%"
+           type: float
+           range: [0, 100]
+           value: 80
+     labels:
+        service: mysql
+        runbook: {{ pmm_alerting_runbook_path }}#MySQLAutoIncrementExhaustion
+     annotations:
+     {% raw %}
+        summary: "CRITICAL - The {{ $labels.schema }}.{{ $labels.table }} table on (instance {{ $labels.node_name }}) is near to reach Auto Increment exhaustion"
+        description: "Modify the numeric type of the field"
+     {% endraw %}
+
+   - name: {{ pmm_templates_prefix }}MySQLPrimaryReadOnly
+     expr: (mysql_global_variables_read_only unless on (node_name) ((mysql_slave_status_master_server_id) or (avg_over_time(mysql_perf_schema_replication_group_member_info{member_role="SECONDARY",member_state="ONLINE"})[1m]))) > 0
+     summary: {{ pmm_templates_prefix }}MySQLPrimaryReadOnly
+     version: 1
+     for: {{ pmm_alertmanager_rule_periods.low_interval }}{{ pmm_alertmanager_rule_periods.interval_unit }}
+     severity: critical
+     labels:
+        service: mysql
+        runbook: {{ pmm_alerting_runbook_path }}#MySQLPrimaryReadOnly
+     annotations:
+     {% raw %}
+        summary: "CRITICAL - The MySQL on (instance {{ $labels.node_name }}) is set to Read Only but this is a primary or standalone."
+        description: "Check why read_only flag is enabled on this Primary node and set it back to 0."
+     {% endraw %}
+
+   - name: {{ pmm_templates_prefix }}ProxySQLIsNotRunning
+     expr: proxysql_up < 1
+     summary: {{ pmm_templates_prefix }}ProxySQLIsNotRunning
+     version: 1
+     for: {{ pmm_alertmanager_rule_periods.high_interval }}{{ pmm_alertmanager_rule_periods.interval_unit }}
+     severity: critical
+     labels:
+        service: proxysql
+        runbook: {{ pmm_alerting_runbook_path }}#ProxySQLIsNotRunning
+     annotations:
+     {% raw %}
+        summary: "CRITICAL - ProxySQL is not running on {{ $labels.node_name }} node."
+        description: "Check Proxysql."
+     {% endraw %}
+
+   - name: {{ pmm_templates_prefix }}ProxySQLMySQLNodeIsNotOnline
+     expr: proxysql_connection_pool_status > 1
+     summary: {{ pmm_templates_prefix }}ProxySQLMySQLNodeIsNotOnline
+     version: 1
+     for: {{ pmm_alertmanager_rule_periods.high_interval }}{{ pmm_alertmanager_rule_periods.interval_unit }}
+     severity: critical
+     labels:
+        service: proxysql
+        runbook: {{ pmm_alerting_runbook_path }}#ProxySQLMySQLNodeIsNotOnline
+     annotations:
+     {% raw %}
+        summary: "CRITICAL - ProxySQL - Status of {{ $labels.node_name }} node is not online."
+        description: "Check MySQL on node."
+     {% endraw %}
+
+   - name: {{ pmm_templates_prefix }}HostGroupDoesNotHaveOnlineServer
+     expr: count(proxysql_connection_pool_status > 1) by (node_name, hostgroup) == count(proxysql_connection_pool_status) by (node_name, hostgroup)
+     summary: {{ pmm_templates_prefix }}HostGroupDoesNotHaveOnlineServer
+     version: 1
+     for: {{ pmm_alertmanager_rule_periods.high_interval }}{{ pmm_alertmanager_rule_periods.interval_unit }}
+     severity: critical
+     labels:
+        service: proxysql
+        runbook: {{ pmm_alerting_runbook_path }}#HostGroupDoesNotHaveOnlineServer
+     annotations:
+     {% raw %}
+        summary: "CRITICAL - ProxySQL - Hostgroup {{ $labels.hostgroup }} does not have online servers."
+        description: "Check Proxysql and MySQL nodes."
+     {% endraw %}
+
+   - name: {{ pmm_templates_prefix }}MongodbInstanceNotAvailable
+     expr: sum by (service_name, node_name) (mongodb_up) == bool 0
+     summary: {{ pmm_templates_prefix }}MongodbInstanceNotAvailable
+     version: 1
+     for: {{ pmm_alertmanager_rule_periods.med_interval }}{{ pmm_alertmanager_rule_periods.interval_unit }}
+     severity: critical
+     labels:
+        service: mongodb
+        runbook: {{ pmm_alerting_runbook_path }}#MongodbInstanceNotAvailable
+     annotations:
+     {% raw %}
+        summary: "CRITICAL - The MongoDB service is unreachable (instance {{ $labels.node_name }})"
+        description: "The mongod service appears to be down, or unreachable. Please investigate."
+     {% endraw %}
+
+   - name: {{ pmm_templates_prefix }}MongodbPrimaryRoleHighFlipping
+     expr: max(rate(mongodb_mongod_replset_term[2m]) * 60) by (app_team_name, cluster, job, set) > 1
+     summary: {{ pmm_templates_prefix }}MongodbPrimaryRoleHighFlipping
+     version: 1
+     for: {{ pmm_alertmanager_rule_periods.med_interval }}{{ pmm_alertmanager_rule_periods.interval_unit }}
+     severity: critical
+     labels:
+        service: mongodb
+        runbook: {{ pmm_alerting_runbook_path }}#MongodbPrimaryRoleHighFlipping
+     annotations:
+     {% raw %}
+        summary: "CRITICAL - Too many elections on (instance {{ $labels.node_name }})"
+        description: "Increases in the term value in rs.status() output show an election occurred, which happens whenever a primary is changed. Please investigate."
+     {% endraw %}
+
+   - name: {{ pmm_templates_prefix }}MongodbReplSetHasNoPrimary
+     expr: max(mongodb_mongod_replset_number_of_members) by (set) - count(mongodb_mongod_replset_my_state == 1) by (set) >= max(mongodb_mongod_replset_number_of_members) by (set)
+     summary: {{ pmm_templates_prefix }}MongodbReplSetHasNoPrimary
+     version: 1
+     for: {{ pmm_alertmanager_rule_periods.med_interval }}{{ pmm_alertmanager_rule_periods.interval_unit }}
+     severity: critical
+     labels:
+        service: mongodb
+        runbook: {{ pmm_alerting_runbook_path }}#MongodbReplSetHasNoPrimary
+     annotations:
+     {% raw %}
+        summary: "CRITICAL - ReplSet has no Primary. (instance {{ $labels.set }})"
+        description: "Please investigate."
+     {% endraw %}
+
+   - name: {{ pmm_templates_prefix }}MongodbReplSetMemberAbsent
+     expr: mongodb_mongod_replset_member_health != 1
+     summary: {{ pmm_templates_prefix }}MongodbReplSetMemberAbsent
+     version: 1
+     for: {{ pmm_alertmanager_rule_periods.med_interval }}{{ pmm_alertmanager_rule_periods.interval_unit }}
+     severity: warning
+     labels:
+        service: mongodb
+        runbook: {{ pmm_alerting_runbook_path }}#MongodbReplSetMemberAbsent
+     annotations:
+     {% raw %}
+        summary: "CRITICAL - ReplSet member is unreachable. (instance {{ $labels.node_name }})"
+        description: "ReplSet member is unreachable. Please investigate."
+     {% endraw %}
+
+   - name: {{ pmm_templates_prefix }}MongodbReplStateNotPrimaryOrSecondary
+     expr: mongodb_mongod_replset_my_state < 1 or mongodb_mongod_replset_my_state > 2
+     summary: {{ pmm_templates_prefix }}MongodbReplStateNotPrimaryOrSecondary
+     version: 1
+     for: {{ pmm_alertmanager_rule_periods.med_interval }}{{ pmm_alertmanager_rule_periods.interval_unit }}
+     severity: critical
+     labels:
+        service: mongodb
+        runbook: {{ pmm_alerting_runbook_path }}#MongodbReplStateNotPrimaryOrSecondary
+     annotations:
+     {% raw %}
+        summary: "CRITICAL - Node isn't Primary or Secondary. (instance {{ $labels.node_name }})"
+        description: "Node is in a state diff than Primary or Secondary. Please investigate."
+     {% endraw %}
+
+   - name: {{ pmm_templates_prefix }}MongodbWTTicketUse
+     expr: mongodb_mongod_wiredtiger_concurrent_transactions_out_tickets > [[ .threshold ]]
+     summary: {{ pmm_templates_prefix }}MongodbWTTicketUse
+     version: 1
+     for: {{ pmm_alertmanager_rule_periods.med_interval }}{{ pmm_alertmanager_rule_periods.interval_unit }}
+     severity: critical
+     params:
+         - name: threshold
+           summary: A numeric value from configured minimum
+           unit: "%"
+           type: float
+           range: [0, 100]
+           value: 10
+     labels:
+        service: mongodb
+        runbook: {{ pmm_alerting_runbook_path }}#MongodbWTTicketUse
+     annotations:
+     {% raw %}
+        summary: "CRITICAL - Wired Tickets Used: {{ $value }}. (instance {{ $labels.node_name }})"
+        description: "Wired Tickets Used is high. Please investigate."
+     {% endraw %}
+
+   - name: {{ pmm_templates_prefix }}MongodbQueueHigh
+     expr: mongodb_mongod_global_lock_current_queue > [[ .threshold ]]
+     summary: {{ pmm_templates_prefix }}MongodbQueueHigh
+     version: 1
+     for: {{ pmm_alertmanager_rule_periods.med_interval }}{{ pmm_alertmanager_rule_periods.interval_unit }}
+     severity: critical
+     params:
+         - name: threshold
+           summary: A numeric value from configured maximum
+           unit: "%"
+           type: float
+           range: [0, 1000]
+           value: 100
+     labels:
+        service: mongodb
+        runbook: {{ pmm_alerting_runbook_path }}#MongodbQueueHigh
+     annotations:
+     {% raw %}
+        summary: "CRITICAL - High Queue: {{ $value }}. (instance {{ $labels.node_name }})"
+        description: "Queued work is high. Please investigate."
+     {% endraw %}
+
+   - name: {{ pmm_templates_prefix }}MongodbReplLag
+     expr: max(max(mongodb_mongod_replset_member_optime_date{state="PRIMARY"}) without (name, state) - min(mongodb_mongod_replset_member_optime_date{state="SECONDARY"}) without (name, state)) without (instance) > [[ .threshold ]]
+     summary: {{ pmm_templates_prefix }}MongodbReplLag
+     version: 1
+     for: {{ pmm_alertmanager_rule_periods.med_interval }}{{ pmm_alertmanager_rule_periods.interval_unit }}
+     severity: critical
+     params:
+         - name: threshold
+           summary: A numeric value from configured minimum
+           unit: "%"
+           type: float
+           range: [0, 1000]
+           value: 200
+     labels:
+        service: mongodb
+        runbook: {{ pmm_alerting_runbook_path }}#MongodbReplLag
+     annotations:
+     {% raw %}
+        summary: "CRITICAL - Replication Lag is: {{ $value }}. (instance {{ $labels.node_name }})"
+        description: "Replication is lagging behind Primary. Please investigate."
+     {% endraw %}
+
+   - name: {{ pmm_templates_prefix }}MongodbReplWindowLessThan10m
+     expr: (mongodb_mongod_replset_oplog_head_timestamp - mongodb_mongod_replset_oplog_tail_timestamp) < [[ .threshold ]]
+     summary: {{ pmm_templates_prefix }}MongodbReplWindowLessThan10m
+     version: 1
+     for: {{ pmm_alertmanager_rule_periods.med_interval }}{{ pmm_alertmanager_rule_periods.interval_unit }}
+     severity: critical
+     params:
+         - name: threshold
+           summary: A numeric value from configured minimum
+           unit: "%"
+           type: float
+           range: [0, 1000]
+           value: 600
+     labels:
+        service: mongodb
+        runbook: {{ pmm_alerting_runbook_path }}#MongodbReplWindowLessThan10m
+     annotations:
+     {% raw %}
+        summary: "CRITICAL - Replication window is: {{ $value }} seconds. (instance {{ $labels.node_name }})"
+        description: "Small replication window. Please investigate."
+     {% endraw %}
+
+   - name: {{ pmm_templates_prefix }}MongodbWTCheckpointTimeHigh
+     expr: rate(mongodb_mongod_wiredtiger_transactions_checkpoint_milliseconds_total{cluster="Dev Media"}[2m]) > [[ .threshold ]]
+     summary: {{ pmm_templates_prefix }}MongodbWTCheckpointTimeHigh
+     version: 1
+     for: {{ pmm_alertmanager_rule_periods.med_interval }}{{ pmm_alertmanager_rule_periods.interval_unit }}
+     severity: warning
+     params:
+         - name: threshold
+           summary: A numeric value from configured minimum
+           unit: "%"
+           type: float
+           range: [0, 1000000]
+           value: 30000
+     labels:
+        service: mongodb
+        runbook: {{ pmm_alerting_runbook_path }}#MongodbWTCheckpointTimeHigh
+     annotations:
+     {% raw %}
+        summary: "WARNING - WT Checkpoint time is: {{ $value }} ms. (instance {{ $labels.node_name }})"
+        description: "WT Checkpoint time is high. Please investigate."
+     {% endraw %}
+
+   - name: {{ pmm_templates_prefix }}MongodHighCursorCount
+     expr: sum(mongodb_mongod_metrics_cursor_open{state="total"} * on (instance) group_right mongodb_mongod_replset_my_name) by (cluster, set) > [[ .threshold ]]
+     summary: {{ pmm_templates_prefix }}MongodHighCursorCount
+     version: 1
+     for: {{ pmm_alertmanager_rule_periods.med_interval }}{{ pmm_alertmanager_rule_periods.interval_unit }}
+     severity: warning
+     params:
+         - name: threshold
+           summary: A numeric value from configured minimum
+           unit: "%"
+           type: float
+           range: [0, 10000]
+           value: 300
+     labels:
+        service: mongodb
+        runbook: {{ pmm_alerting_runbook_path }}#MongodHighCursorCount
+     annotations:
+     {% raw %}
+        summary: "WARNING - Cursor count is: {{ $value }} ms. (instance {{ $labels.set }})"
+        description: "Cursor count is high. Please investigate."
+     {% endraw %}
+
+   - name: {{ pmm_templates_prefix }}MongodbWTCacheReadIntoFromDisk
+     expr: (mongodb_mongod_wiredtiger_cache_bytes_total{type="read"} - mongodb_mongod_wiredtiger_cache_bytes_total{type="read"} offset 1m) / 1024 / 1024 > [[ .threshold ]]
+     summary: {{ pmm_templates_prefix }}MongodbWTCacheReadIntoFromDisk
+     version: 1
+     for: {{ pmm_alertmanager_rule_periods.med_interval }}{{ pmm_alertmanager_rule_periods.interval_unit }}
+     severity: warning
+     params:
+         - name: threshold
+           summary: A numeric value from configured minimum
+           unit: "%"
+           type: float
+           range: [0, 10000]
+           value: 1024
+     labels:
+        service: mongodb
+        runbook: {{ pmm_alerting_runbook_path }}#MongodbWTCacheReadIntoFromDisk
+     annotations:
+     {% raw %}
+        summary: "WARNING - WT Read Cache bytes total is: {{ $value }} MB. (instance {{ $labels.node_name }})"
+        description: "WiredTiger Cache Activity high. Please investigate."
+     {% endraw %}
+
+   - name: {{ pmm_templates_prefix }}PostgresqlIsUp
+     expr: sum by (service_name, node_name) (pg_up) == bool 0
+     summary: {{ pmm_templates_prefix }}PostgresqlIsUp
+     version: 1
+     for: {{ pmm_alertmanager_rule_periods.low_interval }}{{ pmm_alertmanager_rule_periods.interval_unit }}
+     severity: critical
+     labels:
+        service: postgresql
+        runbook: {{ pmm_alerting_runbook_path }}#PostgresqlIsUp
+     annotations:
+     {% raw %}
+        summary: "CRITICAL - PostgreSQL is up rule (instance {{ $labels.node_name }})"
+        description: "PostgreSQL is down."
+     {% endraw %}
+
+   - name: {{ pmm_templates_prefix }}PostgresqlExporterError
+     expr: pg_exporter_last_scrape_error > 0
+     summary: {{ pmm_templates_prefix }}PostgresqlExporterError
+     version: 1
+     for: {{ pmm_alertmanager_rule_periods.med_interval }}{{ pmm_alertmanager_rule_periods.interval_unit }}
+     severity: critical
+     labels:
+        service: postgresql
+        runbook: {{ pmm_alerting_runbook_path }}#PostgresqlExporterError
+     annotations:
+     {% raw %}
+        summary: "CRITICAL - Postgresql exporter error (instance {{ $labels.node_name }})"
+        description: "Postgresql exporter is showing errors."
+     {% endraw %}
+
+   - name: {{ pmm_templates_prefix }}PostgresqlReplicationLag
+     expr: pg_replication_lag > [[ .threshold ]] and ON(instance) pg_replication_is_replica == 1
+     summary: {{ pmm_templates_prefix }}PostgresqlReplicationLag
+     version: 1
+     for: {{ pmm_alertmanager_rule_periods.low_interval }}{{ pmm_alertmanager_rule_periods.interval_unit }}
+     severity: critical
+     params:
+         - name: threshold
+           summary: A numeric value from configured minimum
+           unit: "%"
+           type: float
+           range: [0, 10000]
+           value: 120
+     labels:
+        service: postgresql
+        runbook: {{ pmm_alerting_runbook_path }}#PostgresqlReplicationLag
+     annotations:
+     {% raw %}
+        summary: "CRITICAL - Postgresql replication is lagging by more than 2 minutes on (instance {{ $labels.node_name }})"
+        description: "See what is blocking or slowing down replication"
+     {% endraw %}
+
+   - name: {{ pmm_templates_prefix }}PostgresqlTooManyConnections
+     expr: sum by (datname) (pg_stat_activity_count{datname!~"template.*|postgres"}) > pg_settings_max_connections * [[ .threshold ]]
+     summary: {{ pmm_templates_prefix }}PostgresqlTooManyConnections
+     version: 1
+     for:  {{ pmm_alertmanager_rule_periods.med_interval }}{{ pmm_alertmanager_rule_periods.interval_unit }}
+     severity: warning
+     params:
+         - name: threshold
+           summary: A percentage from configured minimum
+           unit: "%"
+           type: float
+           range: [0, 1]
+           value: 0.8
+     labels:
+        service: postgresql
+        runbook: {{ pmm_alerting_runbook_path }}#PostgresqlTooManyConnections
+     annotations:
+     {% raw %}
+        summary: "WARNING - Postgresql too many connections (instance {{ $labels.node_name }})"
+        description: "PostgreSQL instance has too many connections.}"
+     {% endraw %}
+
+   - name: {{ pmm_templates_prefix }}PostgresqlDeadLocks
+     expr: increase(pg_stat_database_deadlocks{datname!~"template.*|postgres"}[1m]) > [[ .threshold ]]
+     summary: {{ pmm_templates_prefix }}PostgresqlDeadLocks
+     version: 1
+     for: {{ pmm_alertmanager_rule_periods.low_interval }}{{ pmm_alertmanager_rule_periods.interval_unit }}
+     severity: warning
+     params:
+         - name: threshold
+           summary: A numeric value from configured minimum
+           unit: "%"
+           type: float
+           range: [0, 100]
+           value: 5
+     labels:
+        service: postgresql
+        runbook: {{ pmm_alerting_runbook_path }}#PostgresqlDeadLocks
+     annotations:
+     {% raw %}
+        summary: "WARNING - Postgresql dead locks (instance {{ $labels.node_name }})"
+        description: "PostgreSQL has dead-locks"
+     {% endraw %}
+
+   - name: {{ pmm_templates_prefix }}PostgresqlSlowQueries
+     expr: pg_slow_queries > [[ .threshold ]]
+     summary: {{ pmm_templates_prefix }}PostgresqlSlowQueries
+     version: 1
+     for: {{ pmm_alertmanager_rule_periods.med_interval }}{{ pmm_alertmanager_rule_periods.interval_unit }}
+     severity: warning
+     params:
+         - name: threshold
+           summary: A numeric value from configured minimum
+           unit: "%"
+           type: float
+           range: [0, 100]
+           value: 0
+     labels:
+        service: postgresql
+        runbook: {{ pmm_alerting_runbook_path }}#PostgresqlSlowQueries
+     annotations:
+     {% raw %}
+        summary: "WARNING - Postgresql slow queries (instance {{ $labels.node_name }})"
+        description: "PostgreSQL executes slow queries"
+     {% endraw %}
+
+   - name: {{ pmm_templates_prefix }}PostgresqlCommitRateLow
+     expr: round(100 * pg_stat_database_xact_commit/(pg_stat_database_xact_commit+pg_stat_database_xact_rollback),2) < [[ .threshold ]]
+     summary: {{ pmm_templates_prefix }}PostgresqlCommitRateLow
+     version: 1
+     for: {{ pmm_alertmanager_rule_periods.low_interval }}{{ pmm_alertmanager_rule_periods.interval_unit }}
+     severity: critical
+     params:
+         - name: threshold
+           summary: A percentage from configured minimum
+           unit: "%"
+           type: float
+           range: [0, 100]
+           value: {{ pmm_alertmanager_thr_PostgresqlCommitRateLow }}
+     labels:
+        service: postgresql
+        runbook: {{ pmm_alerting_runbook_path }}#PostgresqlCommitRateLow
+     annotations:
+     {% raw %}
+        summary: "CRITICAL - Postgresql commit rate low (instance {{ $labels.node_name }})"
+        description: "Postgres seems to be processing very few transactions"
+     {% endraw %}
+
+   - name: {{ pmm_templates_prefix }}PostgresqlTooManyLocksAcquired
+     expr: ((sum (pg_locks_count)) / (pg_settings_max_locks_per_transaction * pg_settings_max_connections)) > [[ .threshold ]]
+     summary: {{ pmm_templates_prefix }}PostgresqlTooManyLocksAcquired
+     version: 1
+     for: {{ pmm_alertmanager_rule_periods.med_interval }}{{ pmm_alertmanager_rule_periods.interval_unit }}
+     severity: critical
+     params:
+         - name: threshold
+           summary: A percentage from configured minimum
+           unit: "%"
+           type: float
+           range: [0, 1]
+           value: 0.20
+     labels:
+        service: postgresql
+        runbook: {{ pmm_alerting_runbook_path }}#PostgresqlTooManyLocksAcquired
+     annotations:
+     {% raw %}
+        summary: "CRITICAL - Postgresql too many locks acquired (instance {{ $labels.node_name }})"
+        description: "Too many locks acquired on the database. If this alert happens frequently, we may need to increase the postgres setting max_locks_per_transaction."
+     {% endraw %}
+
+   - name: {{ pmm_templates_prefix }}PostgresqlArchiveFailed
+     expr: delta(pg_stat_archiver_failed_count[1m]) >= 1
+     summary: {{ pmm_templates_prefix }}PostgresqlArchiveFailed
+     version: 1
+     for: {{ pmm_alertmanager_rule_periods.low_interval }}{{ pmm_alertmanager_rule_periods.interval_unit }}
+     severity: warning
+     labels:
+        service: postgresql
+        runbook: {{ pmm_alerting_runbook_path }}#PostgresqlArchiveFailed
+     annotations:
+     {% raw %}
+        summary: "WARNING - PostgreSQL archiving is failing on (instance {{ $labels.node_name }})"
+        description: "PostgreSQL archive failure."
+     {% endraw %}
+
+   - name: {{ pmm_templates_prefix }}PostgresqlIdleInTransaction
+     expr: pg_stat_activity_max_tx_duration{state="idle in transaction"} > [[ .threshold ]]
+     summary: {{ pmm_templates_prefix }}PostgresqlIdleInTransaction
+     version: 1
+     for: {{ pmm_alertmanager_rule_periods.low_interval }}{{ pmm_alertmanager_rule_periods.interval_unit }}
+     severity: warning
+     params:
+         - name: threshold
+           summary: A numeric value from configured minimum
+           unit: "%"
+           type: float
+           range: [0, 1000]
+           value: 300
+     labels:
+        service: postgresql
+        runbook: {{ pmm_alerting_runbook_path }}#PostgresqlIdleInTransaction
+     annotations:
+     {% raw %}
+        summary: "WARNING - Session is idle in transaction for more than 5 minutes (database {{ $labels.datname }}@{{ $labels.node_name }})"
+        description: "Session is idle in transaction."
+     {% endraw %}
+
+   - name: {{ pmm_templates_prefix }}PostgresqlUpTime
+     expr: pg_postmaster_uptime_seconds < [[ .threshold ]]
+     summary: {{ pmm_templates_prefix }}PostgresqlUpTime
+     version: 1
+     for: {{ pmm_alertmanager_rule_periods.low_interval }}{{ pmm_alertmanager_rule_periods.interval_unit }}
+     severity: critical
+     params:
+         - name: threshold
+           summary: A numeric value from configured minimum
+           unit: "%"
+           type: float
+           range: [0, 1000]
+           value: 300
+     labels:
+        service: postgresql
+        runbook: {{ pmm_alerting_runbook_path }}#PostgresqlUpTime
+     annotations:
+     {% raw %}
+        summary: "CRITICAL - PostgreSQL uptime rule (instance {{ $labels.node_name }})"
+        description: "PostgreSQL was restarted in the last 5 minutes."
+     {% endraw %}
+
+   - name: {{ pmm_templates_prefix }}PostgresqlTransactionDuration
+     expr: pg_stat_activity_max_tx_duration > [[ .threshold ]]
+     summary: {{ pmm_templates_prefix }}PostgresqlTransactionDuration
+     version: 1
+     for: {{ pmm_alertmanager_rule_periods.low_interval }}{{ pmm_alertmanager_rule_periods.interval_unit }}
+     severity: warning
+     params:
+         - name: threshold
+           summary: A numeric value from configured minimum
+           unit: "%"
+           type: float
+           range: [0, 1000]
+           value: 420
+     labels:
+        service: postgresql
+        runbook: {{ pmm_alerting_runbook_path }}#PostgresqlTransactionDuration
+     annotations:
+     {% raw %}
+        summary: "WARNING - PostgreSQL Transaction Time (database {{ $labels.datname }}@{{ $labels.node_name }})"
+        description: "There is transaction with duration over 7 minutes."
+     {% endraw %}
+
+   - name: {{ pmm_templates_prefix }}NodeAgentDown
+     expr: up == 0
+     summary: {{ pmm_templates_prefix }}NodeAgentDown
+     version: 1
+     for: {{ pmm_alertmanager_rule_periods.high_interval }}{{ pmm_alertmanager_rule_periods.interval_unit }}
+     severity: critical
+     labels:
+        service: agent
+        runbook: {{ pmm_alerting_runbook_path }}#NodeAgentDown
+     annotations:
+     {% raw %}
+        summary: "CRITICAL - The NodeAgentDown ({{ $labels.agent_type }}) is unreachable (instance {{ $labels.node_name }})"
+        description: "The NodeAgentDown {{ $labels.node_type }} appears to be down, or unreachable. Please investigate"
      {% endraw %}

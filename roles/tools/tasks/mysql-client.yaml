@@ -5,6 +5,18 @@
   vars:
     container_image: '{{ tools_mysql_image }}:{{ tools_mysql_image_tag }}'
 
+- name: Check for tools_mysql_conf
+  ansible.builtin.stat:
+    path: '{{ tools_mysql_conf }}'
+  register: tools_stat_mysql_conf
+
+- name: Ensure that the mounted files exist
+  ansible.builtin.copy:
+    dest: '{{ tools_mysql_conf }}'
+    content: >
+      # This file is unmanaged
+  when: not tools_stat_mysql_conf.stat.exists
+
 - name: Add alias for MySQL CLI
   ansible.builtin.lineinfile:
     path: '{{ tools_profile_path }}'
