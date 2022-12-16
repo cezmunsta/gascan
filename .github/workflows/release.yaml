@@ -25,7 +25,7 @@ jobs:
 
       - name: Build gascan
         run: |
-          make all_versions | xargs -L1
+          make all_versions | xargs -L1 make
           cp -p build/linux/amd64/centos-stream9/gascan-py3.9 build/gascan-py3.9-centos-stream9
           cp -p build/linux/amd64/ubuntu-jammy/gascan-py3.10 build/gascan-py3.10-ubuntu-jammy
           cp -p build/linux/amd64/debian-bullseye/gascan-py3.9 build/gascan-py3.9-debian-bullseye
