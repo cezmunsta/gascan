@@ -35,7 +35,7 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/')
         with:
           draft: true
-          generate_release_note: false
+          generate_release_notes: false
           files: |
             LICENSE
             build/gascan-py3.9-centos-stream9
