@@ -20,4 +20,8 @@ Restart={{ container_service.restart | default('on-failure') }}
 RestartSec={{ container_service.restart_sec | default(20) }}
 
 [Install]
+{% if container_rootless %}
+WantedBy=default.target
+{% else %}
 WantedBy=multi-user.target
+{% endif %}

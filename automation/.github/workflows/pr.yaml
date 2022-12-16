@@ -1,0 +1,32 @@
+---
+name: CI
+on:
+  pull_request:
+    branches:
+    - main
+    paths:
+    - '**.yaml'
+jobs:
+  build:
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Prepare Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Prepare Ansible
+        run: |
+          python3 -m pip install ansible==6.6.0 jmespath dnspython
+          ansible-config dump
+
+      - name: Checkout codebase
+        uses: actions/checkout@v3
+
+      - name: Perform full-run
+        run: |
+          ansible-playbook -i etc/pr-workflow-inventory.yaml pmm-full.yaml
+...
