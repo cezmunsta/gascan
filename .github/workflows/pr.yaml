@@ -18,12 +18,12 @@ jobs:
         uses: actions/setup-go@v3
         with:
           go-version: 1.18
-          check_latest: true
+          check-latest: true
 
       - name: Prepare environment
         run: |
-          apt update -qqy
-          apt install -qqy podman buildah ansible-lint
+          sudo apt update -qqy
+          sudo apt install -qqy podman buildah ansible-lint
 
       - name: Checkout codebase
         uses: actions/checkout@v3
