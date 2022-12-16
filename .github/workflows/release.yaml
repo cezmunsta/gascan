@@ -1,0 +1,43 @@
+name: Release
+
+on: push
+      tags:
+        - "v*.*.*"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Prepare Go
+        uses: actions/setup-go@v3
+        with:
+          go-version: 1.18
+          check-latest: true
+
+      - name: Prepare environment
+        run: |
+          sudo apt update -qqy
+          sudo apt install -qqy podman buildah ansible-lint
+
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Build gascan
+        run: |
+          make all_versions | xargs -L1
+          cp -p build/linux/amd64/centos-stream9/gascan-py3.9 build/gascan-py3.9-centos-stream9
+          cp -p build/linux/amd64/ubuntu-jammy/gascan-py3.10 build/gascan-py3.10-ubuntu-jammy
+          cp -p build/linux/amd64/debian-bullseye/gascan-py3.9 build/gascan-py3.9-debian-bullseye
+
+      - name: Release
+        uses: softprops/action-gh-release@v1
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          draft: true
+          generate_release_note: false
+          files: |
+            LICENSE
+            build/gascan-py3.9-centos-stream9
+            build/gascan-py3.10-ubuntu-jammy
+            build/gascan-py3.9-debian-bullseye
+
