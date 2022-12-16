@@ -1,0 +1,62 @@
+all:
+    children:
+        azure:
+            hosts: null
+            vars: null
+        cloud:
+            children:
+                azure: null
+                cloudsql: null
+                rds: null
+        cloudsql:
+            hosts: null
+            vars: null
+        dbservers:
+            children:
+                cloud: null
+                mongodb: null
+                mysql: null
+                postgresql: null
+        ha:
+            children:
+                haproxy: null
+                proxysql: null
+        haproxy:
+            hosts: null
+            vars: null
+        mongodb:
+            hosts:
+                db1: null
+            vars: null
+        monitors:
+            hosts:
+                monitor: null
+            vars: null
+        mysql:
+            hosts:
+                db1: null
+            vars: null
+        pmm_clients:
+            hosts: null
+        postgresql:
+            hosts: null
+            vars: null
+        proxysql:
+            hosts: null
+            vars: null
+        rds:
+            hosts: null
+            vars: null
+    hosts:
+        db1:
+            ansible_connection: local
+            ansible_host: localhost
+        monitor:
+            ansible_connection: local
+            ansible_host: localhost
+            container_engine: podman
+    vars:
+        pmm_admin_set_password: false
+        pmm_pagerduty_token: '00000000000000000000000000000000'
+        pmm_version: 2.33.0
+
