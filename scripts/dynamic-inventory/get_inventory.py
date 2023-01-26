@@ -26,9 +26,13 @@ from subprocess import (
     run,
 )
 import sys
+import tempfile
 import time
 import urllib.request
 
+
+CACHE_DIR = os.getenv('GASCAN_CACHE_DIR', os.path.join(tempfile.gettempdir(), '.gascan'))
+CACHE_TTL = os.getenv('GASCAN_CACHE_TTL', '3600')
 
 DEFAULT_CONFIG_FILE = 'config.json'
 DEFAULT_HEADERS = {
@@ -174,6 +178,57 @@ def parse_args() -> dict:
     return vars(parser.parse_args())
 
 
+def get_cache_path(path: str):
+    """
+    Get the local filesystem path for a cached version of the inventory
+
+    :param path: Path to the cached item
+    :type path: str
+    :return: local filesystem path
+    """
+    return os.path.join(CACHE_DIR, path)
+
+
+def check_cache(path: str):
+    """
+    Check the local filesystem for a cached version of the inventory
+
+    :param path: Path to the cached item
+    :type path: str
+    :return: customer_inventory
+    """
+    cache_path = get_cache_path(path)
+    LOG.debug('checking cache item %s', cache_path)
+    try:
+        with open(cache_path, 'rb') as cache_data:
+            if time.time() - os.fstat(cache_data.fileno()).st_mtime > float(CACHE_TTL):
+                LOG.debug('ttl expired cache item %s', cache_path)
+                raise ValueError(f'cache ttl ({CACHE_TTL}) exceeded for item "{cache_path}"')
+            return cache_data.read()
+    except (OSError, ValueError):
+        LOG.warning('failed to access %s', cache_path)
+        return b'{}'
+
+
+def write_cache(data: bytes, path: str):
+    """
+    Write data out to a cache file
+
+    :param data:
+    :type data: bytes
+    :param path:
+    :type path: str
+    """
+    try:
+        if not os.path.isdir(CACHE_DIR):
+            os.mkdir(CACHE_DIR, mode=0o700)
+
+        with open(get_cache_path(path), 'wb') as cache_item:
+            cache_item.write(data)
+    except OSError:
+        LOG.warning('failed to write data to %s', data)
+
+
 def main():
     """
     Call the dummy inventory and return the first customers
@@ -181,7 +236,6 @@ def main():
     TODO: - add caching of the encrypted inventory
             - use for CACHE_LIFETIME
             - if exceeding CACHE_LIFETIME and unable to make a request, use cache
-          - add support for direct Ansible decryption via API
 
     :return: customer inventory
     """
@@ -197,23 +251,27 @@ def main():
     attempt = 0
     resp = None
     LOG.debug('requesting inventory')
-    while attempt < cfg.retry_attempts:
-        try:
-            with urllib.request.urlopen(req, timeout=cfg.request_timeout) as resp:
-                status = resp.status
-                if status == HTTPStatus.OK:
-                    data = resp.read()
-                    break
-                LOG.error('failed to request inventory: %d', resp.status)
-        except: # pylint: disable=bare-except
-            LOG.warning('failed attempt = %d', attempt, exc_info=True)
-        time.sleep(cfg.retry_wait_seconds)
-        attempt += 1
-        LOG.debug('attempts = %d', attempt)
-        data = b'{}'
-    del cfg
-    del req
-    del resp
+
+    data = check_cache('inventory.json')
+    if data == b'{}':
+        while attempt < cfg.retry_attempts:
+            try:
+                with urllib.request.urlopen(req, timeout=cfg.request_timeout) as resp:
+                    status = resp.status
+                    if status == HTTPStatus.OK:
+                        data = resp.read()
+                        write_cache(data, 'inventory.json')
+                        break
+                    LOG.error('failed to request inventory: %d', resp.status)
+            except: # pylint: disable=bare-except
+                LOG.warning('failed attempt = %d', attempt, exc_info=True)
+            time.sleep(cfg.retry_wait_seconds)
+            attempt += 1
+            LOG.debug('attempts = %d', attempt)
+            data = b'{}'
+        del cfg
+        del req
+        del resp
 
     LOG.debug('checking for read_inventory.sh')
     if not os.path.isfile('read_inventory.sh'):
