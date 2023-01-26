@@ -6,6 +6,7 @@ on:
     - main
     paths:
     - 'automation/**'
+    - scripts/dynamic-inventory/get_inventory.py
 
 jobs:
   build:
