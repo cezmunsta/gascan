@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"runtime"
 	"strings"
 )
 
@@ -26,6 +27,14 @@ type Flags struct {
 // EntryPointPlaybook defines the playbook that is executed at runtime
 var EntryPointPlaybook = "pmm-full.yaml"
 
+func printVersion() {
+	fmt.Println("Version:", Version)
+	fmt.Println("Go Version:", runtime.Version())
+	fmt.Println("Arch:", runtime.GOOS, runtime.GOARCH)
+	fmt.Println("Ansible Version:", AnsibleVersion)
+	fmt.Println("Python Version:", PythonVersion)
+}
+
 func flags() {
 	Config.Mode = 0
 
@@ -43,6 +52,7 @@ func flags() {
 	noConfigFlag := flag.Bool("skip-configure", false, "Skip initial configuration")
 	noDeployFlag := flag.Bool("skip-deploy", false, "Skip deploying the monitor host")
 	testFlag := flag.Bool("test", false, "Run the test play (ping)")
+	versionFlag := flag.Bool("version", false, "Show the version")
 
 	flag.BoolVar(&Config.NoSudoPassword, "passwordless-sudo", !needsBecomePass, "The use of sudo does not require a password")
 
@@ -74,6 +84,11 @@ func flags() {
 	}
 
 	flag.Parse()
+
+	if *versionFlag {
+		printVersion()
+		os.Exit(0)
+	}
 
 	if *generateHashFlag {
 		hash, err := generateHash("/etc/machine-id")
