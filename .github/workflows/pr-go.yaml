@@ -10,10 +10,6 @@ on:
     - 'go.sum'
 jobs:
   build:
-    env:
-      ANSIBLE_VERSION: 6.0
-      PYTHON_VERSION: 3.10
-      RELEASE_VERSION: pr-go
     strategy:
       matrix:
         os: [ubuntu-22.04]
@@ -31,11 +27,7 @@ jobs:
       - name: Perform checks
         run: |
           install -d build
-          touch build/ansible bundle.tgz
-          go generate
-          go fmt ./...
-          git diff --exit-code --quiet
-          go vet -unusedresult -bools -copylocks -framepointer -httpresponse -json -stdmethods -printf -stringintconv -unmarshal -unsafeptr ./...
-          git diff --exit-code --quiet
-          go test ./...
+          touch build/ansible
+          make pack
+          make test
 ...
