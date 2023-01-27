@@ -10,6 +10,10 @@ on:
     - 'go.sum'
 jobs:
   build:
+    env:
+      ANSIBLE_VERSION: 6.0
+      PYTHON_VERSION: 3.10
+      RELEASE_VERSION: pr-go
     strategy:
       matrix:
         os: [ubuntu-22.04]
