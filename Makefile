@@ -3,6 +3,7 @@ SHELL=/bin/bash
 
 .PHONY: clean
 .PHONY: prep
+.PHONY: test
 .PHONY: venv
 
 # Options
@@ -101,15 +102,16 @@ build: export GOARCH=${ARCH}
 build: export VDIR=${BUILD_DIR}/${OS}/${ARCH}/${BUILD_BASE_TAG}
 build: export VNAME=${VDIR}/${NAME}-py${PY}
 build: build_prep pack check
-	@go build -o "${VNAME}" -trimpath -race -gcflags="all=-N -l" \
+	@${GO} build -o "${VNAME}" -trimpath -race -gcflags="all=-N -l" \
 		-ldflags="-X main.EntryPointPlaybook=${ENTRYPOINT} -X main.HeaderIdentifier=${AUTH_FIELD_1} -X main.HeaderToken=${AUTH_FIELD_2} -X main.HeaderMonitorName=${AUTH_FIELD_3}"
 	@cp -a "${VNAME}" "${BUILD_DIR}/gascan"
+	@rm -f version.go
 
 build_prep: export GOOS=${OS}
 build_prep: export GOARCH=${ARCH}
 build_prep: export VDIR=${BUILD_DIR}/${OS}/${ARCH}/${BUILD_BASE_TAG}
 build_prep: export VNAME=${VDIR}/ansible${PY}
-build_prep:
+build_prep: go_generate
 	@rm -vf "${BUILD_DIR}/gascan"
 	@cp -a "${VNAME}" "${BUILD_DIR}/ansible"
 
@@ -121,6 +123,16 @@ else
 check:
 	@echo check: No Go files to check
 endif
+
+test: go_generate check
+	@${GO} test ./...
+	@rm -f version.go
+
+go_generate: export ANSIBLE_VERSION="${ANSIBLE}"
+go_generate: export PYTHON_VERSION="${PY}"
+go_generate: export RELEASE_VERSION="${VERSION}"
+go_generate:
+	@${GO} generate
 
 go_fix: export PACKAGE=./
 go_fix:
@@ -141,6 +153,7 @@ clean:
 	@find "${BUILD_DIR}" -type f -print -delete
 	@rm -vf bundle.tgz
 	@rm -vrf venv
+	@rm -f version.go
 	@"${GO}" clean -x
 	@"${GO}" clean -x -cache
 	@"${GO}" clean -x -testcache
