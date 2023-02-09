@@ -5,6 +5,39 @@ Dynamic inventory for Ansible
 This is a sample script that can be used as-is with a config,
 or as a base to create one that meets the requirements of the
 environment where gascan will be used.
+
+The following environment variables can be used to configure
+how this script behaves:
+
+  - GASCAN_CACHE_DIR
+    The default cache directory is /tmp/.gascan
+
+  - GASCAN_CACHE_TTL
+    The default TTL for the cache is 3600 (1h)
+
+  - GASCAN_INVENTORY_CONFIG_FILE
+    The default config file is ${HOME}/.config/gascan/inventory-config.json
+
+The following options are available for control within the config file, which
+should be created as a JSON object:
+
+  - headers
+    A mapping representing the headers that need to be sent to the remote
+    endpoint when making requests
+
+  - key_file
+    The path to the key used when encrypting and decrypting the inventory
+    using Ansible Vault and its AES256 encryption
+
+  - retry_attempts
+    How many times to retry a request when an issue is detected
+
+  - retry_wait_seconds
+    The delay, in seconds, to wait in between retries
+
+  - uri
+    The endpoint that provides the inventory
+
 """
 
 from argparse import (
@@ -21,6 +54,7 @@ from stat import (
     S_IREAD,
 )
 import shlex
+import shutil
 from subprocess import (
     CalledProcessError,
     run,
@@ -32,9 +66,10 @@ import urllib.request
 
 
 CACHE_DIR = os.getenv('GASCAN_CACHE_DIR', os.path.join(tempfile.gettempdir(), '.gascan'))
+CACHE_INVENTORY_FILE = 'inventory.cache'
 CACHE_TTL = os.getenv('GASCAN_CACHE_TTL', '3600')
 
-DEFAULT_CONFIG_FILE = 'config.json'
+DEFAULT_CONFIG_FILE = os.path.join(os.getenv('HOME'), '.config', 'gascan', 'inventory-config.json')
 DEFAULT_HEADERS = {
     'Content-type': 'application/json',
 }
@@ -59,7 +94,7 @@ set -eu
 declare DATA="${1:-inventory.json}"
 declare KEY_FILE="${2:-.vault-key}"
 
-trap "rm -f "${DATA}"" EXIT
+trap 'rm -f "${DATA}"' EXIT
 
 PEX_SCRIPT=ansible-vault \
 ANSIBLE_VAULT_PASSWORD_FILE="${KEY_FILE}" \
@@ -220,13 +255,23 @@ def write_cache(data: bytes, path: str):
     :type path: str
     """
     try:
-        if not os.path.isdir(CACHE_DIR):
-            os.mkdir(CACHE_DIR, mode=0o700)
-
+        make_cache_dir()
         with open(get_cache_path(path), 'wb') as cache_item:
             cache_item.write(data)
     except OSError:
         LOG.warning('failed to write data to %s', data)
+
+
+def make_cache_dir() -> bool:
+    """
+    Create the parent directory for caching
+
+    :return: if the directory needed to be created
+    """
+    if not os.path.isdir(CACHE_DIR):
+        os.mkdir(CACHE_DIR, mode=0o700)
+        return True
+    return False
 
 
 def main():
@@ -252,7 +297,7 @@ def main():
     resp = None
     LOG.debug('requesting inventory')
 
-    data = check_cache('inventory.json')
+    data = check_cache(CACHE_INVENTORY_FILE)
     if data == b'{}':
         while attempt < cfg.retry_attempts:
             try:
@@ -261,6 +306,7 @@ def main():
                     if status == HTTPStatus.OK:
                         data = resp.read()
                         write_cache(data, 'inventory.json')
+                        write_cache(data, CACHE_INVENTORY_FILE)
                         break
                     LOG.error('failed to request inventory: %d', resp.status)
             except: # pylint: disable=bare-except
@@ -272,6 +318,8 @@ def main():
         del cfg
         del req
         del resp
+    else:
+        shutil.copy(CACHE_INVENTORY_FILE, 'inventory.json')
 
     LOG.debug('checking for read_inventory.sh')
     if not os.path.isfile('read_inventory.sh'):
@@ -297,6 +345,8 @@ def main():
 if __name__ == '__main__':
     # noinspection PyBroadException
     try:
+        make_cache_dir()
+        os.chdir(CACHE_DIR)
         print(main())
     except SystemExit:
         pass
