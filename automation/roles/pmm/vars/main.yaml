@@ -28,56 +28,56 @@ pmm_grafana_alerting_notification: '{{ pmm_grafana_api }}/alertmanager/grafana/c
 pmm_grafana_alerting_rules_delete: '{{ pmm_grafana_alerting_rules_list }}{{ pmm_template_folder }}/'
 
 pmm_payload_base:
-   cluster: standalone
-   disable_collectors: []
-   disable_query_examples: true
-   environment: production
-   log_level: warn
-   metrics_mode: PUSH
-   node_name: '{{ inventory_hostname }}'
-   password: ''
-   pmm_agent_id: '{{ pmm_inventory_pmm_agent_id | default(omit) }}'
-   replication_set: ''
-   skip_connection_check: false
-   tls: false
-   tls_ca: ""
-   tls_cert: ""
-   tls_key: ""
-   tls_skip_verify: true
-   username: percona
+  cluster: standalone
+  disable_collectors: []
+  disable_query_examples: true
+  environment: production
+  log_level: warn
+  metrics_mode: PUSH
+  node_name: '{{ inventory_hostname }}'
+  password: ''
+  pmm_agent_id: '{{ pmm_inventory_pmm_agent_id | default(omit) }}'
+  replication_set: ''
+  skip_connection_check: false
+  tls: false
+  tls_ca: ""
+  tls_cert: ""
+  tls_key: ""
+  tls_skip_verify: true
+  username: percona
 pmm_payload_add_azure_base:
 pmm_payload_add_cloudsql_base:
 pmm_payload_add_haproxy_base:
-   listen_port: 8404
-   service_name: '{{ inventory_hostname }}-haproxy'
+  listen_port: 8404
+  service_name: '{{ inventory_hostname }}-haproxy'
 pmm_payload_add_mongodb_base:
-   authenticaton_database: admin
-   query_source: profiler
-   service_name: '{{ inventory_hostname }}-mongodb'
-   socket: /tmp/mongodb-27011.sock
+  authenticaton_database: admin
+  query_source: profiler
+  service_name: '{{ inventory_hostname }}-mongodb'
+  socket: /tmp/mongodb-27011.sock
 pmm_payload_add_mysql_base:
-   qan_mysql_perfschema: true
-   qan_mysql_slowlog: false
-   service_name: '{{ inventory_hostname }}-mysql'
-   socket: /var/lib/mysql/mysql.sock
+  qan_mysql_perfschema: true
+  qan_mysql_slowlog: false
+  service_name: '{{ inventory_hostname }}-mysql'
+  socket: /var/lib/mysql/mysql.sock
 pmm_payload_add_postgresql_base:
-   database: postgres
-   query_source: pgstatements
-   service_name: '{{ inventory_hostname }}-postgresql'
-   socket: /var/run/postgresql/.s.PGSQL.5432
+  database: postgres
+  query_source: pgstatements
+  service_name: '{{ inventory_hostname }}-postgresql'
+  socket: /var/run/postgresql
 pmm_payload_add_proxysql_base:
-   host: 127.0.0.1
-   port: 6032
-   service_name: '{{ inventory_hostname }}-proxysql'
+  host: 127.0.0.1
+  port: 6032
+  service_name: '{{ inventory_hostname }}-proxysql'
 pmm_payload_add_rds_base:
-   address: '{{ ansible_host }}'
-   engine: '{{ "DISCOVER_RDS_POSTGRESQL" if group_names | intersect(["postgresql"]) else "DISCOVER_RDS_MYSQL" }}'
-   instance_id: '{{ ansible_host | split(".") | first }}'
-   metrics_mode: PULL
-   port: '{{ 5432 if group_names | intersect(["postgresql"]) else 3306 }}'
-   qan_mysql_perfschema: '{{ group_names | intersect("mysql") | length > 0 }}'
-   qan_postgresql_perfschema: '{{ group_names | intersect("postgresql") | length > 0 }}'
-   region: '{{ ansible_host | replace(".rds.amazonaws.com", "") | split(".") | last }}'
+  address: '{{ ansible_host }}'
+  engine: '{{ "DISCOVER_RDS_POSTGRESQL" if group_names | intersect(["postgresql"]) else "DISCOVER_RDS_MYSQL" }}'
+  instance_id: '{{ ansible_host | split(".") | first }}'
+  metrics_mode: PULL
+  port: '{{ 5432 if group_names | intersect(["postgresql"]) else 3306 }}'
+  qan_mysql_perfschema: '{{ group_names | intersect("mysql") | length > 0 }}'
+  qan_postgresql_perfschema: '{{ group_names | intersect("postgresql") | length > 0 }}'
+  region: '{{ ansible_host | replace(".rds.amazonaws.com", "") | split(".") | last }}'
 
 pmm_server_uri: '{{ pmm_server_schema }}://{{ pmm_server_host }}:{{ pmm_server_port }}'
 ...
