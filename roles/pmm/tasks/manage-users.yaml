@@ -20,8 +20,8 @@
       login: '{{ item.login }}'
       password: '{{ item.password }}'
     status_code:
-    - 200
-    - 412
+      - 200
+      - 412
     url_password: '{{ pmm_api_credentials[1] }}'
     url_username: '{{ pmm_api_credentials[0] }}'
   no_log: true
@@ -49,8 +49,8 @@
       name: '{{ item.login }}-{{ item.role }}'
       role: '{{ item.role }}'
     status_code:
-    - 200
-    - 409
+      - 200
+      - 409
     url_password: '{{ pmm_api_credentials[1] }}'
     url_username: '{{ pmm_api_credentials[0] }}'
   no_log: true
@@ -93,7 +93,7 @@
 
     - name: Save the updated inventory
       ansible.builtin.copy:
-        content: '{{ inventory_data | combine(inventory_data_patch|from_json, recursive=True) | to_nice_yaml }}'
+        content: '{{ inventory_data | combine(inventory_data_patch | from_json, recursive=True) | to_nice_yaml }}'
         dest: '{{ item }}'
         backup: true
       loop:

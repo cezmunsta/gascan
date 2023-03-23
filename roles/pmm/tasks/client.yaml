@@ -42,7 +42,7 @@
       when: ("If you want override node, use --force option" in pmm_agent_setup_command.stdout) and pmm_agent_running_node_exporter|length
 
     - name: Validate setup
-      assert:
+      ansible.builtin.assert:
         that: pmm_agent_setup_command.rc == 0 or "If you want override node, use --force option" in pmm_agent_setup_command.stdout
         fail_msg: PMM Agent requires attention
         success_msg: PMM Agent setup OK

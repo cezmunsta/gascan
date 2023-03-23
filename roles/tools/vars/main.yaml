@@ -4,3 +4,4 @@ tools_packages:
 
 tools_percona_gpg_key_url: https://www.percona.com/downloads/RPM-GPG-KEY-percona
 tools_percona_release_url: https://repo.percona.com/yum/percona-release-latest.noarch.rpm
+...

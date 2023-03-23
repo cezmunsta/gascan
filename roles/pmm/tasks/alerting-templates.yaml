@@ -1,10 +1,10 @@
 - name: Current Alert Template
   ansible.builtin.debug:
-   msg: "{{ pmm_template_item.name }}"
+    msg: "{{ pmm_template_item.name }}"
 
 - name: Set pmm_alerting_template_body
   ansible.builtin.set_fact:
-    pmm_alerting_template_body: "{{ new_item|default({}) | combine({ 'templates': [pmm_template_item] }) | to_yaml(indent=2) }}"
+    pmm_alerting_template_body: "{{ new_item | default({}) | combine({'templates': [pmm_template_item]}) | to_yaml(indent=2) }}"
 
 - name: Create alert templates
   ansible.builtin.uri:
@@ -29,8 +29,8 @@
     password: '{{ pmm_api_credentials[1] }}'
     body:
       {
-      "name": "{{ pmm_template_item.name }}",
-      "yaml": "{{ pmm_alerting_template_body }}"
+        "name": "{{ pmm_template_item.name }}",
+        "yaml": "{{ pmm_alerting_template_body }}"
       }
     force_basic_auth: yes
     status_code:

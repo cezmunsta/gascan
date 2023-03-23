@@ -5,59 +5,61 @@
   register: container_image_pull
 
 - block:
-    - name: Check podman for --no-healthcheck support
-      ansible.builtin.shell:
-        cmd: podman run --help | grep -Fq 'no-healthcheck'
-      changed_when: false
-      ignore_errors: true
-      register: container_podman_healthcheck_check
+    - block:
+        - name: Check podman for --no-healthcheck support
+          ansible.builtin.shell:
+            cmd: podman run --help | grep -Fq 'no-healthcheck'
+          changed_when: false
+          ignore_errors: true
+          register: container_podman_healthcheck_check
 
-    - name: Set healthcheck fact
-      ansible.builtin.set_fact:
-        container_healthcheck: "{{ '--health-cmd=none --health-interval=disable' if (container_podman_healthcheck_check.rc is undefined or container_podman_healthcheck_check.rc|int == 1) else '--no-healthcheck' }}"
+        - name: Set healthcheck fact
+          ansible.builtin.set_fact:
+            container_healthcheck: "{{ '--health-cmd=none --health-interval=disable' if (container_podman_healthcheck_check.rc is undefined or container_podman_healthcheck_check.rc | int == 1) else '--no-healthcheck' }}"
 
-    - name: Create ~/.config/systemd/user
-      ansible.builtin.file:
-        path: ~/.config/systemd/user
-        state: directory
-        mode: u=rwX,g=rX,o=
+        - name: Create ~/.config/systemd/user
+          ansible.builtin.file:
+            path: ~/.config/systemd/user
+            state: directory
+            mode: u=rwX,g=rX,o=
 
-    - name: Create the systemd unit file
-      ansible.builtin.template:
-        src: container-unit-file.j2
-        dest: '~/.config/systemd/user/{{ container_service.name }}.service'
-        owner: '{{ container_service.user | default(ansible_user_uid) }}'
-        group: '{{ container_service.group | default(ansible_user_gid) }}'
-        mode: u=rw,a=r
-      register: container_service_unit
+        - name: Create the systemd unit file
+          ansible.builtin.template:
+            src: container-unit-file.j2
+            dest: '~/.config/systemd/user/{{ container_service.name }}.service'
+            owner: '{{ container_service.user | default(ansible_user_uid) }}'
+            group: '{{ container_service.group | default(ansible_user_gid) }}'
+            mode: u=rw,a=r
+          register: container_service_unit
 
-    - name: Start the container
-      ansible.builtin.systemd:
-        name: '{{ container_service.name }}'
-        daemon_reload: '{{ container_service_unit.changed|bool }}'
-        enabled: true
-        scope: user
-        state: '{{ "restarted" if (container_service_unit.changed|bool or container_force_reload|bool) else "started" }}'
-  when: container_service.name is defined and container_rootless
+        - name: Start the container
+          ansible.builtin.systemd:
+            name: '{{ container_service.name }}'
+            daemon_reload: '{{ container_service_unit.changed | bool }}'
+            enabled: true
+            scope: user
+            state: '{{ "restarted" if (container_service_unit.changed | bool or container_force_reload | bool) else "started" }}'
+      when: container_rootless
 
-- block:
-    - name: Create the systemd unit file
-      ansible.builtin.template:
-        src: container-unit-file.j2
-        dest: '/etc/systemd/system/{{ container_service.name }}.service'
-        owner: root
-        group: root
-        mode: u=rw,a=r
-      register: container_service_unit
+    - block:
+        - name: Create the systemd unit file
+          ansible.builtin.template:
+            src: container-unit-file.j2
+            dest: '/etc/systemd/system/{{ container_service.name }}.service'
+            owner: root
+            group: root
+            mode: u=rw,a=r
+          register: container_service_unit
 
-    - name: Start the container
-      ansible.builtin.systemd:
-        name: '{{ container_service.name }}'
-        daemon_reload: '{{ container_service_unit.changed|bool }}'
-        enabled: true
-        state: '{{ "restarted" if (container_service_unit.changed|bool or container_force_reload|bool) else "started" }}'
-  become: true
+        - name: Start the container
+          ansible.builtin.systemd:
+            name: '{{ container_service.name }}'
+            daemon_reload: '{{ container_service_unit.changed | bool }}'
+            enabled: true
+            state: '{{ "restarted" if (container_service_unit.changed | bool or container_force_reload | bool) else "started" }}'
+      become: true
+      when: not container_rootless
+      tags:
+        - sudo
   when: container_service.name is defined
-  tags:
-    - sudo
 ...

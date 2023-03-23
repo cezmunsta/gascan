@@ -15,36 +15,36 @@
   register: pmm_dbaas_cluster_list
 
 - block:
-  # TODO: Aaron, you need to use json_query as this will break when there are no clusters
-  - name: Set kube_cluster_name fact (only the first is accepted for now)
-    ansible.builtin.set_fact:
-      pmm_dbaas_cluster_name: "{{ pmm_dbaas_cluster_list.json.kubernetes_clusters[0].kubernetes_cluster_name }}"
+    # TODO: Aaron, you need to use json_query as this will break when there are no clusters
+    - name: Set kube_cluster_name fact (only the first is accepted for now)
+      ansible.builtin.set_fact:
+        pmm_dbaas_cluster_name: "{{ pmm_dbaas_cluster_list.json.kubernetes_clusters[0].kubernetes_cluster_name }}"
 
-  - name: Get kube config information
-    ansible.builtin.uri:
-      url: "{{ pmm_server_uri }}{{ pmm_api_management }}/DBaaS/Kubernetes/Get"
-      url_password: '{{ pmm_admin_token if pmm_admin_use_token else (pmm_admin_password_new | default(pmm_admin_password)) }}'
-      url_username: '{{ "api_key" if pmm_admin_use_token else pmm_admin_username }}'
-      method: POST
-      force_basic_auth: yes
-      headers:
-        accept: "application/json"
-        content-type: "application/json"
-      body:
-        kubernetes_cluster_name: "{{ pmm_dbaas_cluster_name }}"
-      body_format: json
-      validate_certs: '{{ pmm_server_insecure }}'
-    register: pmm_dbass_k8s_config
+    - name: Get kube config information
+      ansible.builtin.uri:
+        url: "{{ pmm_server_uri }}{{ pmm_api_management }}/DBaaS/Kubernetes/Get"
+        url_password: '{{ pmm_admin_token if pmm_admin_use_token else (pmm_admin_password_new | default(pmm_admin_password)) }}'
+        url_username: '{{ "api_key" if pmm_admin_use_token else pmm_admin_username }}'
+        method: POST
+        force_basic_auth: yes
+        headers:
+          accept: "application/json"
+          content-type: "application/json"
+        body:
+          kubernetes_cluster_name: "{{ pmm_dbaas_cluster_name }}"
+        body_format: json
+        validate_certs: '{{ pmm_server_insecure }}'
+      register: pmm_dbass_k8s_config
 
-  # TODO: Aaron, you need to use json_query as this will break when there are no clusters
-  - name: Manage kube config
-    ansible.builtin.include_role:
-      name: tools
-      tasks_from: kubectl
-      apply:
-        tags:
-          - config
-    vars:
-      tools_kubectl_configuration: '{{ pmm_dbass_k8s_config.json.kube_auth.kubeconfig }}'
+    # TODO: Aaron, you need to use json_query as this will break when there are no clusters
+    - name: Manage kube config
+      ansible.builtin.include_role:
+        name: tools
+        tasks_from: kubectl
+        apply:
+          tags:
+            - config
+      vars:
+        tools_kubectl_configuration: '{{ pmm_dbass_k8s_config.json.kube_auth.kubeconfig }}'
   when: pmm_dbaas_cluster_list.status|int == 200
 ...
