@@ -91,9 +91,12 @@ func TestPrepare(t *testing.T) {
 		filepath.Join(binDir, "ansible.sh"),
 		filepath.Join(binDir, "ansible"),
 		filepath.Join(configDir, "secrets.yaml"),
+		filepath.Join(binDir, "connect.py"),
 		filepath.Join(binDir, "dynamic-inventory.py"),
 	}
 
+	ConnectionTool = filepath.Join(tmpDir, "connect.py")
+	extractToFile(ConnectionTool, connectTool, 0o550)
 	DynamicInventoryScript = filepath.Join(tmpDir, "dynamic-inventory.py")
 	extractToFile(DynamicInventoryScript, dynamicInventory, 0o550)
 	prepareHost(tmpDir, binDir, configDir)
