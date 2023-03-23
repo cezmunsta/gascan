@@ -281,8 +281,7 @@ class Connect: # pylint: disable=too-many-instance-attributes
 
         def _cmd(service):
             try:
-                if service.connect_cmd:
-                    connect_cmd = service.connect_cmd
+                connect_cmd = service.connect_cmd if service.connect_cmd else self._default_commands[service.type]
             except AttributeError:
                 connect_cmd = self._default_commands[service.type]
             if service.type == 'mysql':
