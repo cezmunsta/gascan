@@ -9,7 +9,7 @@
         - name: Set user.max_user_namespaces
           ansible.builtin.sysctl:
             name: user.max_user_namespaces
-            value: '{{ container_namespace_max_size|string }}'
+            value: '{{ container_namespace_max_size | string }}'
       become: true
       tags:
         - sudo
@@ -29,7 +29,7 @@
         - name: Enable linger
           ansible.builtin.command:
             cmd: loginctl enable-linger '{{ ansible_env.SUDO_USER }}'
-          when: not container_linger_check.stat.exists|bool
+          when: not container_linger_check.stat.exists | bool
       become: true
       tags:
         - sudo

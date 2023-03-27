@@ -22,11 +22,11 @@ pmm_agent_setup_flags:
   server-password: '{{ pmm_agent_token }}'
   server-insecure-tls: '{{ pmm_server_insecure }}'
 
-pmm_template_folder: '{{ pmm_default_template_folder | default("DefaultFolder")}}'
-pmm_alertmanager_contactpoint_uid: '{{ pmm_alertamanger_default_contactpoint_uid | default("DefaultContact_")}}'
-pmm_templates_prefix: '{{ pmm_default_templates_prefix | default("DefaultPrefix_")}}'
+pmm_template_folder: '{{ pmm_default_template_folder | default("DefaultFolder") }}'
+pmm_alertmanager_contactpoint_uid: '{{ pmm_alertamanger_default_contactpoint_uid | default("DefaultContact_") }}'
+pmm_templates_prefix: '{{ pmm_default_templates_prefix | default("DefaultPrefix_") }}'
 pmm_alerting_runbook_path: 'https://localhost/runbooks/'              # path used in alert labels
-pmm_alertmanager_rule_periods:                                                                          # Used to set the "for" duration in rules
+pmm_alertmanager_rule_periods:                                        # Used to set the "for" duration in rules
   interval_unit: m
   low_interval: 1
   med_interval: 5
@@ -46,12 +46,12 @@ pmm_alertmanager_thr_StaleUploadLog: 3900
 
 pmm_setup_alerting: true
 pmm_delete_alert_rules: false
-pmm_notification_services: ["mysql","mongo","generic","agent","proxysql","postgresql","backup"]
+pmm_notification_services: ["mysql", "mongo", "generic", "agent", "proxysql", "postgresql", "backup"]
 
 pmm_enable_all_alerts_for_service: []
-# pmm_enable_all_alert_for_service: ["mysql","mongo","generic","agent","proxysql","postgresql","backup"]
+#pmm_enable_all_alert_for_service: ["mysql", "mongo", "generic", "agent", "proxysql", "postgresql", "backup"]
 pmm_enable_all_templates_for_service: []
-#pmm_enable_all_templates_for_service: ["mysql","mongo","generic","agent","proxysql","postgresql","backup"]
+#pmm_enable_all_templates_for_service: ["mysql", "mongo", "generic", "agent", "proxysql", "postgresql", "backup"]
 pmm_alerts_for_services: []
 pmm_alert_names: []
 pmm_enabled_alerts: []
@@ -107,27 +107,27 @@ pmm_container_env:
   METRICS_RESOLUTION_MR: 5m
 pmm_container_env_file: /usr/local/percona/.pmm-server
 pmm_container_extra_args: ' --ulimit=host -p 8443:443/tcp --volume=pmm-data:/srv:z '
-pmm_container_image_repo: '{{ "docker.io/perconalab" if [pmm_version]|intersect(["dev-latest"]) else "docker.io/percona" }}'
+pmm_container_image_repo: '{{ "docker.io/perconalab" if [pmm_version] | intersect(["dev-latest"]) else "docker.io/percona" }}'
 pmm_container_port: 8443
 pmm_container_volume: pmm-data
 
 pmm_deploy_using: '{{ container_engine | default("podman") }}'
 
 pmm_manage_users: []
-# - user: xxx
-#   login: xxx
-#   password: xxx | omit to avoid account creation
-#   role: Admin | Editor | Viewer
-#   is_grafana_admin: false | omit to avoid Grafana admin permissions
-#   requires_token: true | omit or set to false to skip tokens
+#- user: xxx
+#  login: xxx
+#  password: xxx | omit to avoid account creation
+#  role: Admin | Editor | Viewer
+#  is_grafana_admin: false | omit to avoid Grafana admin permissions
+#  requires_token: true | omit or set to false to skip tokens
 
 pmm_pagerduty_token: '{{ pagerduty | default("") }}'
 
 # pmm_payload_add_base, plus variables derived from it, allow for
 # customisation of the payload sent to PMM Server when adding a service.
 pmm_payload_add_base:
-   custom_labels:
-     installer: gascan
+  custom_labels:
+    installer: gascan
 
 pmm_payload_add_azure: '{{ pmm_payload_add_base }}'
 pmm_payload_add_cloudsql: '{{ pmm_payload_add_base }}'

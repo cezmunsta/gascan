@@ -17,7 +17,7 @@
     method: POST
     user: '{{ pmm_api_credentials[0] }}'
     password: '{{ pmm_api_credentials[1] }}'
-    body: {"title":"{{ pmm_template_folder }}"}
+    body: {"title": "{{ pmm_template_folder }}"}
     force_basic_auth: yes
     status_code:
       - 200
@@ -50,7 +50,7 @@
     method: POST
     user: '{{ pmm_api_credentials[0] }}'
     password: '{{ pmm_api_credentials[1] }}'
-    body: {"title":"{{ pmm_template_folder }}"}
+    body: {"title": "{{ pmm_template_folder }}"}
     force_basic_auth: yes
     status_code:
       - 200
@@ -62,21 +62,21 @@
 
 - name: Set alerts for service
   ansible.builtin.set_fact:
-    pmm_alerts_for_services: "{{ pmm_alerts_for_services + (pmm_alerting_templates['templates'] | selectattr('labels.service','equalto', item ) | map(attribute='name')) }}"
+    pmm_alerts_for_services: "{{ pmm_alerts_for_services + (pmm_alerting_templates['templates'] | selectattr('labels.service', 'equalto', item) | map(attribute='name')) }}"
   loop: "{{ pmm_enable_all_alerts_for_service }}"
 
 - name: Create Alert list
   ansible.builtin.set_fact:
-      pmm_alert_names: "{{ pmm_alert_names + [{'name': item | split(pmm_templates_prefix) | last}]}}"
+    pmm_alert_names: "{{ pmm_alert_names + [{'name': item | split(pmm_templates_prefix) | last}] }}"
   loop: "{{ pmm_alerts_for_services }}"
 
 - name: Set alerts to be enabled
   ansible.builtin.set_fact:
-      pmm_enabled_alerts: "{{ [pmm_alert_names, pmm_alert_list]| community.general.lists_mergeby('name',recursive=true) }}"
+    pmm_enabled_alerts: "{{ [pmm_alert_names, pmm_alert_list] | community.general.lists_mergeby('name', recursive=true) }}"
 
 - name: Set pmm_existing_alert_templates
   ansible.builtin.set_fact:
-    pmm_existing_alert_templates: "{{ pmm_get_alert_templates.json | json_query('templates[*].name')}}"
+    pmm_existing_alert_templates: "{{ pmm_get_alert_templates.json | json_query('templates[*].name') }}"
 
 - ansible.builtin.include_tasks: alerting-contactpoint.yaml
 
@@ -85,8 +85,28 @@
 - ansible.builtin.include_tasks: alerting-templates.yaml
   vars:
     pmm_template_item: '{{ item }}'
-  when: "{{ item.labels.service in pmm_enable_all_templates_for_service}}"
+  when: "{{ item.labels.service in pmm_enable_all_templates_for_service }}"
   loop: "{{ pmm_alerting_templates['templates'] }}"
+
+- name: Get updated templates
+  ansible.builtin.uri:
+    url: '{{ pmm_server_uri }}{{ pmm_api_alerting_templates_list }}'
+    method: POST
+    user: '{{ pmm_api_credentials[0] }}'
+    password: '{{ pmm_api_credentials[1] }}'
+    body: {"title":"{{ pmm_template_folder }}"}
+    force_basic_auth: yes
+    status_code:
+      - 200
+      - 409
+    body_format: json
+    validate_certs: '{{ pmm_server_insecure }}'
+    return_content: true
+  register: pmm_get_updated_templates
+
+- name: Set pmm_updated_alert_templates
+  ansible.builtin.set_fact:
+    pmm_updated_alert_templates: "{{ pmm_get_updated_templates.json | json_query('templates[*].name')}}"
 
 - name: Delete Current Alert rules
   ansible.builtin.uri:
@@ -118,18 +138,17 @@
 
 - name: Set pmm_existing_alert_rules
   ansible.builtin.set_fact:
-    pmm_existing_alert_rules: '{{ pmm_get_alert_rules.json | json_query(""+ pmm_template_folder + "[*].rules[*].annotations[].rule")}}'
+    pmm_existing_alert_rules: '{{ pmm_get_alert_rules.json | json_query(""+ pmm_template_folder + "[*].rules[*].grafana_alert[].title")}}'
 
 - ansible.builtin.include_tasks: alerting-alerts.yaml
   vars:
     pmm_alert_item: '{{ item }}'
-  loop: "{{ pmm_enabled_alerts | selectattr('name','defined') | list }}"
+  loop: "{{ pmm_enabled_alerts | selectattr('name', 'defined') | list }}"
 
 - name: Delete template file
   ignore_errors: yes
-  file:
+  ansible.builtin.file:
     state: absent
     path: '/tmp/alerting-template.yaml'
   changed_when: false
   delegate_to: localhost
-

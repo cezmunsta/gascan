@@ -27,6 +27,9 @@ jobs:
         uses: actions/checkout@v3
 
       - name: Perform full-run
+        env:
+          GASCAN_ANSIBLE_NOLOG: "${{ vars.GASCAN_ANSIBLE_NOLOG }}"
+          GASCAN_ANSIBLE_PMM_RETRIES: "${{ vars.GASCAN_ANSIBLE_PMM_RETRIES }}"
         run: |
           ansible-playbook -i etc/pr-workflow-inventory.yaml pmm-full.yaml
 ...

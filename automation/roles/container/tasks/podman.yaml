@@ -15,7 +15,7 @@
 
         - name: Set healthcheck fact
           ansible.builtin.set_fact:
-            container_healthcheck: "{{ '--health-cmd=none --health-interval=disable' if (container_podman_healthcheck_check.rc is undefined or container_podman_healthcheck_check.rc|int == 1) else '--no-healthcheck' }}"
+            container_healthcheck: "{{ '--health-cmd=none --health-interval=disable' if (container_podman_healthcheck_check.rc is undefined or container_podman_healthcheck_check.rc | int == 1) else '--no-healthcheck' }}"
 
         - name: Create ~/.config/systemd/user
           ansible.builtin.file:
@@ -35,10 +35,10 @@
         - name: Start the container
           ansible.builtin.systemd:
             name: '{{ container_service.name }}'
-            daemon_reload: '{{ container_service_unit.changed|bool }}'
+            daemon_reload: '{{ container_service_unit.changed | bool }}'
             enabled: true
             scope: user
-            state: '{{ "restarted" if (container_service_unit.changed|bool or container_force_reload|bool) else "started" }}'
+            state: '{{ "restarted" if (container_service_unit.changed | bool or container_force_reload | bool) else "started" }}'
       when: container_rootless
 
     - block:
@@ -54,9 +54,9 @@
         - name: Start the container
           ansible.builtin.systemd:
             name: '{{ container_service.name }}'
-            daemon_reload: '{{ container_service_unit.changed|bool }}'
+            daemon_reload: '{{ container_service_unit.changed | bool }}'
             enabled: true
-            state: '{{ "restarted" if (container_service_unit.changed|bool or container_force_reload|bool) else "started" }}'
+            state: '{{ "restarted" if (container_service_unit.changed | bool or container_force_reload | bool) else "started" }}'
       become: true
       when: not container_rootless
       tags:

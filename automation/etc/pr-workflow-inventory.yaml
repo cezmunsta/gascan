@@ -59,4 +59,3 @@ all:
         pmm_admin_set_password: false
         pmm_pagerduty_token: '00000000000000000000000000000000'
         pmm_version: 2.33.0
-
