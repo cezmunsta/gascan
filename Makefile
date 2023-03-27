@@ -171,7 +171,7 @@ prep:
 	@install -d "${BUILD_DIR}/${OS}/${ARCH}/${BUILD_BASE_TAG}"
 
 sample-bundle:
-	@git archive --output=sample-bundle.tgz --format=tar.gz "${VERSION}" automation/{pmm-server-custom.yaml,ping.yaml,templates,roles,group_vars,host_vars} scripts/dynamic-inventory/get_inventory.py
+	@git archive --output=sample-bundle.tgz --format=tar.gz "${VERSION}" automation/{pmm-server-custom.yaml,ping.yaml,templates,roles,group_vars,host_vars} scripts/dynamic-inventory/get_inventory.py scripts/connect/connect.py
 
 venv:
 	@python3 -m venv venv

@@ -52,6 +52,9 @@ var (
 	// Config stores the settings
 	Config Flags
 
+	// ConnectionTool is the path to the SSH and database connection tool
+	ConnectionTool string
+
 	// DynamicInventoryScript is the path to the extracted Python script
 	// to use as a dynamic inventory
 	DynamicInventoryScript string
@@ -74,6 +77,9 @@ var (
 	//go:embed bundle.tgz
 	bundle []byte
 
+	//go:embed scripts/connect/connect.py
+	connectTool []byte
+
 	defaultConfig = "templates/defaultConfig.j2"
 
 	defaultInventory = "templates/defaultInventory.j2"
@@ -88,6 +94,13 @@ var (
 
 	sampleInventoryConfig SampleInventoryConfig
 )
+
+// SampleConnectionToolConfig helps to generate a sample config for dynamic inventories
+type SampleConnectionToolConfig struct {
+	ServerAddress string            `json:"server_address"`
+	Standardise   bool              `json:"standardise"`
+	Inventory     map[string]string `json:"inventory"`
+}
 
 // SampleInventoryConfig helps to generate a sample config for dynamic inventories
 type SampleInventoryConfig struct {
@@ -199,6 +212,9 @@ func generateVaultKey(path string) error {
 func prepareHost(baseDir string, binDir string, configDir string) error {
 	ansibleHelper := filepath.Join(binDir, "ansible.sh")
 	ansiblePex := filepath.Join(binDir, "ansible.pex")
+	connectionTool := filepath.Join(binDir, "connect.py")
+	connectionToolSrc := filepath.Join(baseDir, "connect.py")
+	connectionToolConf := filepath.Join(configDir, "connect-py.json")
 	dynInventory := filepath.Join(binDir, "dynamic-inventory.py")
 	dynInventorySrc := filepath.Join(baseDir, "dynamic-inventory.py")
 	dynInventoryConf := filepath.Join(configDir, "inventory-config.json")
@@ -247,6 +263,35 @@ func prepareHost(baseDir string, binDir string, configDir string) error {
 		if c, err := ioutil.ReadFile(tempInventory); err == nil {
 			fmt.Printf("Copying temporary inventory '%s' to '%s'\n", tempInventory, secrets)
 			extractToFile(secrets, c, 0o600)
+		}
+	}
+
+	// Copy the connection tool
+	if c, err := ioutil.ReadFile(connectionToolSrc); err == nil {
+		fmt.Printf("Copying connection tool '%s' to '%s'\n", connectionToolSrc, connectionTool)
+		extractToFile(connectionTool, c, 0o550)
+
+		for _, p := range []string{"db_connect", "ssh_connect"} {
+			os.Symlink(connectionTool, filepath.Join(binDir, p))
+		}
+
+	}
+
+	// Generat a config for the connetion tool
+	if _, err := os.Stat(connectionToolConf); err != nil {
+		sampleConnectionToolConfig := SampleConnectionToolConfig{
+			ServerAddress: "https://localhost:8443",
+			Standardise:   true,
+			Inventory:     map[string]string{},
+		}
+
+		buf, err := json.MarshalIndent(sampleConnectionToolConfig, "", "  ")
+		if err != nil {
+			return err
+		}
+
+		if err := ioutil.WriteFile(connectionToolConf, []byte(string(buf)), 0o640); err != nil {
+			return err
 		}
 	}
 
@@ -320,6 +365,7 @@ func main() {
 	tmpDir := createWorkspace()
 
 	Ansible = filepath.Join(tmpDir, "ansible.pex")
+	ConnectionTool = filepath.Join(tmpDir, "connect.py")
 	DynamicInventoryScript = filepath.Join(tmpDir, "dynamic-inventory.py")
 
 	inventory := Config.Inventory
@@ -351,6 +397,7 @@ func main() {
 
 	extractBundle(bundle, tmpDir)
 	extractToFile(Ansible, pex, 0o550)
+	extractToFile(ConnectionTool, connectTool, 0o550)
 	extractToFile(DynamicInventoryScript, dynamicInventory, 0o550)
 
 	if newPath, err := checkInventoryStatus(inventory, tmpDir); err != nil {
