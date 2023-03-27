@@ -1,3 +1,4 @@
 ---
 tools_percona_release_dependencies:
   - gnupg2
+...

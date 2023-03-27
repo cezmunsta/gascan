@@ -36,5 +36,4 @@
   become: yes
   tags:
     - sudo
-
 ...
