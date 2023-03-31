@@ -101,8 +101,9 @@ build: export GOOS=${OS}
 build: export GOARCH=${ARCH}
 build: export VDIR=${BUILD_DIR}/${OS}/${ARCH}/${BUILD_BASE_TAG}
 build: export VNAME=${VDIR}/${NAME}-py${PY}
+build: export CGO_ENABLED=0
 build: build_prep pack check
-	@${GO} build -o "${VNAME}" -trimpath -race -gcflags="all=-N -l" \
+	@${GO} build -o "${VNAME}" -trimpath -gcflags="all=-N -l" \
 		-ldflags="-X main.EntryPointPlaybook=${ENTRYPOINT} -X main.HeaderIdentifier=${AUTH_FIELD_1} -X main.HeaderToken=${AUTH_FIELD_2} -X main.HeaderMonitorName=${AUTH_FIELD_3}"
 	@cp -a "${VNAME}" "${BUILD_DIR}/gascan"
 	@rm -f version.go
