@@ -23,6 +23,15 @@
   tags:
     - mysql
 
+- name: Install PostgreSQL clients
+  ansible.builtin.include_tasks: postgresql-client.yaml
+  vars:
+    tools_postgresql_image_tag: '{{ item }}'
+  loop: '{{ tools_postgresql_versions }}'
+  when: tools_postgresql_install
+  tags:
+    - postgresql
+
 - name: Include distro specific variables
   ansible.builtin.include_vars: '{{ ansible_distribution | lower }}.yaml'
 
