@@ -11,7 +11,7 @@
 - name: Check Template
   ansible.builtin.debug:
     msg: "Template name '{{ prefix_template_name }}' does not exist."
-  when: prefix_template_name not in pmm_existing_alert_templates
+  when: prefix_template_name not in pmm_updated_alert_templates
 
 - block:
     - name: Clear Params and Set names
@@ -20,20 +20,20 @@
 
     - name: Get Params
       ansible.builtin.set_fact:
-        pmm_all_templates: "{{ pmm_get_alert_templates.json['templates'] | selectattr('name','equalto', prefix_template_name ) | map(attribute='params')| flatten | default('') }}"
+        pmm_all_templates: "{{ pmm_get_updated_templates.json['templates'] | selectattr('name','equalto', prefix_template_name ) | map(attribute='params')| flatten | default('') }}"
       ignore_errors: true
       no_log: true
 
     - name: Set params
       ansible.builtin.set_fact:
-        pmm_param_name: "{{ pmm_all_templates[0]['name']}}"
-        pmm_param_float: "{{ pmm_alert_list | json_query(\"[?name==`\"+ pmm_alert_item.name +\"`].threshold\") }}"
-        pmm_param_type: "{{ pmm_all_templates[0]['type']}}"
+        pmm_param_name: "{{ pmm_all_templates[0]['name'] }}"
+        pmm_param_float: "{{ pmm_alert_list | json_query(\"[?name==`\" + pmm_alert_item.name + \"`].threshold\") }}"
+        pmm_param_type: "{{ pmm_all_templates[0]['type'] }}"
       when: pmm_all_templates | length > 0
 
     - name: Set Alert Filter
       ansible.builtin.set_fact:
-        pmm_alerting_filters: "{{ pmm_alert_list | json_query(\"[?name==`\"+ pmm_alert_item.name +\"`].filters\")  }}"
+        pmm_alerting_filters: "{{ pmm_alert_list | json_query(\"[?name==`\" + pmm_alert_item.name + \"`].filters\") }}"
 
     - name: Create alerts
       ansible.builtin.uri:
@@ -47,8 +47,8 @@
                 {{ labels }}
                 {% else %}
                 {}
-                {% endif%},
-                "severity": "SEVERITY_{{ pmm_alerting_templates['templates'] | selectattr('name','equalto', prefix_template_name) |  map(attribute='severity') | join | upper }}",
+                {% endif %},
+                "severity": "SEVERITY_{{ pmm_alerting_templates['templates'] | selectattr('name', 'equalto', prefix_template_name) | map(attribute='severity') | join | upper }}",
                 "template_name": "{{ prefix_template_name }}",
                 "name": "{{ prefix_alert_name }}",
                 "filters": {{ pmm_alerting_filters | flatten }},
@@ -58,7 +58,7 @@
                   {
                     "name": "{{ pmm_param_name | default('') }}",
                     "type": "{{ pmm_param_type | default('') }}",
-                    "float": {% if pmm_param_float is defined and pmm_param_float | length > 0 %} "{{ pmm_param_float[0] | default(0) }}"  {% else %} "{{ pmm_all_templates[0]['float']['default'] | default(0) }}" {% endif%}
+                    "float": {% if pmm_param_float is defined and pmm_param_float | length > 0 %} "{{ pmm_param_float[0] | default(0) }}"  {% else %} "{{ pmm_all_templates[0]['float']['default'] | default(0) }}" {% endif %}
                   }
                 ],
                 {% endif %}
@@ -70,7 +70,5 @@
           - 409
         body_format: json
         validate_certs: '{{ pmm_server_insecure }}'
-  when: (pmm_get_alert_rules == "" or (prefix_alert_name is defined and prefix_alert_name not in pmm_existing_alert_rules)) and prefix_template_name in pmm_existing_alert_templates
-
-
-
+  when: (pmm_get_alert_rules == "" or (prefix_alert_name is defined and prefix_alert_name not in pmm_existing_alert_rules)) and prefix_template_name in pmm_updated_alert_templates
+  

@@ -37,7 +37,7 @@
         name: container
       vars:
         container_env_file: '{{ pmm_container_env_file }}'
-        container_force_reload: '{{ pmm_container_manage_env_file.changed|bool }}'
+        container_force_reload: '{{ pmm_container_manage_env_file.changed | bool }}'
         container_image: '{{ pmm_container_image_repo }}/pmm-server:{{ pmm_version }}'
         container_port: '{{ pmm_container_port }}'
         container_service:
@@ -49,12 +49,12 @@
 - name: Verify server status
   ansible.builtin.include_tasks: check-ready.yaml
   tags:
-  - always
+    - always
 
 - name: Verify API access
   ansible.builtin.include_tasks: api-assertions.yaml
   tags:
-  - always
+    - always
 
 - name: Manage users
   ansible.builtin.include_tasks: manage-users.yaml
@@ -65,7 +65,7 @@
 - name: Grafana Alerting
   ansible.builtin.include_tasks: grafana-alerting.yaml
   tags:
-  - alerting
+    - alerting
   when: ((pmm_setup_alerting and pmm_pagerduty_token | string is regex("^[0-9a-zA-Z]{32}$")) and
          (pmm_server_version.json["version"] is defined and pmm_server_version.json["version"] is version_compare('2.31.0', operator='>=', strict=True)))
 ...

@@ -28,7 +28,7 @@
     method: POST
     user: '{{ pmm_api_credentials[0] }}'
     password: '{{ pmm_api_credentials[1] }}'
-    body: "{{ pmm_existing_notification_policies.json | combine(pmm_alerting_base_routes , recursive=true, list_merge='append') }}"
+    body: "{{ pmm_existing_notification_policies.json | combine(pmm_alerting_base_routes, recursive=true, list_merge='append') }}"
     force_basic_auth: yes
     status_code:
       - 200

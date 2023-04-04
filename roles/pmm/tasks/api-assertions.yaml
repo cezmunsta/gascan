@@ -34,7 +34,7 @@
 
     - name: Patch inventory data
       ansible.builtin.set_fact:
-        inventory_data_patched: '{{ inventory_data | combine(inventory_data_patch|from_json, recursive=True) }}'
+        inventory_data_patched: '{{ inventory_data | combine(inventory_data_patch | from_json, recursive=True) }}'
 
     - name: Update the admin account in PMM
       ansible.builtin.uri:
@@ -50,7 +50,7 @@
           newPassword: '{{ pmm_admin_set_password_question.user_input }}'
           confirmNew: '{{ pmm_admin_set_password_question.user_input }}'
         status_code:
-        - 200
+          - 200
         url_password: admin
         url_username: admin
 
@@ -88,7 +88,7 @@
         headers:
           Content-Type: application/json
         status_code:
-        - 200
+          - 200
         url_password: '{{ pmm_admin_token }}'
         url_username: api_key
       register: pmm_server_version
@@ -100,6 +100,12 @@
   when: pmm_admin_use_token | bool
 
 - block:
+    - name: Use default credentials
+      ansible.builtin.set_fact:
+        pmm_admin_password_new: admin
+      when: pmm_admin_is_default and pmm_admin_password_new is undefined
+
+- block:
     - name: Test username and password
       ansible.builtin.uri:
         url: '{{ pmm_server_uri }}{{ pmm_api_version }}'
@@ -109,7 +115,7 @@
         headers:
           Content-Type: application/json
         status_code:
-        - 200
+          - 200
         url_password: '{{ pmm_admin_password_new | default(pmm_admin_password) }}'
         url_username: '{{ pmm_admin_username }}'
       register: pmm_server_version
