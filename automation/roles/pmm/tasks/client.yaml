@@ -38,7 +38,7 @@
 
     - name: Setup pmm-agent bypassing registration
       ansible.builtin.command:
-        cmd: '{{ pmm_client_extract_base }}/pmm/bin/pmm-agent setup --id={{ pmm_agent_info.agent_id }} --skip-registration @${HOME}/.config/pmm/agent-flags.txt'
+        cmd: '{{ pmm_client_extract_base }}/pmm/bin/pmm-agent setup --id={{ pmm_inventory_pmm_agent_id }} --skip-registration @${HOME}/.config/pmm/agent-flags.txt'
       when: ("If you want override node, use --force option" in pmm_agent_setup_command.stdout) and pmm_agent_running_node_exporter|length
 
     - name: Validate setup

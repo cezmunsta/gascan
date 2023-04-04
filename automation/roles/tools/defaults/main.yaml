@@ -24,6 +24,16 @@ tools_mysql_versions:
   - 5.7
   - 8.0
 
+tools_postgresql_conf: "{{ ansible_env.HOME }}/.pgpass"
+tools_postgresql_image: docker.io/perconalab/percona-distribution-postgresql
+tools_postgresql_install: "{{ 'postgresql' in groups and groups['postgresql'] | length > 0 }}"
+tools_postgresql_versions:
+  - 11.18
+  - 12.13
+  - 13.9
+  - 14.6
+  - 15.1
+
 tools_profile_path: "{{ tools_home_dir }}/.bashrc"
 
 tools_user_bin_dir: "{{ tools_home_dir }}/bin"
