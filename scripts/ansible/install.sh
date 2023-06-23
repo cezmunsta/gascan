@@ -6,7 +6,7 @@
 set -eu
 
 declare -r VERSION="${1:-3.9}"
-declare -r ANSIBLE="${2:-6.6.0}"
+declare -r ANSIBLE="${2:-6.7.0}"
 declare -r PACKAGES="${3:-undef}"
 declare -r REQUIREMENTS='/tmp/requirements.txt'
 

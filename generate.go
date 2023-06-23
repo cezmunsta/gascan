@@ -16,6 +16,9 @@ const (
     // AnsibleVersion for the built-in PEX
     AnsibleVersion = "%s"
 
+    // BundleVersion for the built-in bundle, determined by env BUNDLE_VERSION
+    BundleVersion = "%s"
+
     // PythonVersion for the built-in PEX
     PythonVersion = "%s"
 
@@ -25,15 +28,20 @@ const (
 `
 
 func main() {
-	ansible_version := strings.ReplaceAll(os.Getenv("ANSIBLE_VERSION"), `"`, "")
-	python_version := strings.ReplaceAll(os.Getenv("PYTHON_VERSION"), `"`, "")
+	ansibleVersion := strings.ReplaceAll(os.Getenv("ANSIBLE_VERSION"), `"`, "")
+	bundleVersion := strings.ReplaceAll(os.Getenv("BUNDLE_RELEASE_VERSION"), `"`, "")
+	pythonVersion := strings.ReplaceAll(os.Getenv("PYTHON_VERSION"), `"`, "")
 	version := strings.ReplaceAll(os.Getenv("RELEASE_VERSION"), `"`, "")
 
-	if ansible_version == "" {
+	if ansibleVersion == "" {
 		panic("env ANSIBLE_VERSION is undefined")
 	}
 
-	if python_version == "" {
+	if bundleVersion == "" {
+		panic("env BUNDLE_RELEASE_VERSION is undefined")
+	}
+
+	if pythonVersion == "" {
 		panic("env PYTHON_VERSION is undefined")
 	}
 
@@ -41,7 +49,7 @@ func main() {
 		panic("env RELEASE_VERSION is undefined")
 	}
 
-	if err := ioutil.WriteFile("version.go", []byte(fmt.Sprintf(versionGo, ansible_version, python_version, version)), 0o644); err != nil {
+	if err := ioutil.WriteFile("version.go", []byte(fmt.Sprintf(versionGo, ansibleVersion, bundleVersion, pythonVersion, version)), 0o644); err != nil {
 		panic("unable to write version.go")
 	}
 }

@@ -7,13 +7,14 @@ SHELL=/bin/bash
 .PHONY: venv
 
 # Options
-ANSIBLE?=6.6.0
+ANSIBLE?=6.7.0
 ARCH?=amd64
 AUTH_FIELD_1?=Auth-Id
 AUTH_FIELD_2?=Auth-Token
 AUTH_FIELD_3?=Monitor-Name
 BUILD_BASE?=quay.io/centos/centos:stream8
 BUILD_DIR?=./build
+BUNDLE_VERSION?=$(shell git rev-parse HEAD)
 ENTRYPOINT?=pmm-full.yaml
 GO?=$(shell which go)
 GOFMT?=$(shell which gofumpt 2>&1)
@@ -130,6 +131,7 @@ test: go_generate check
 	@rm -f version.go
 
 go_generate: export ANSIBLE_VERSION="${ANSIBLE}"
+go_generate: export BUNDLE_RELEASE_VERSION="${BUNDLE_VERSION}"
 go_generate: export PYTHON_VERSION="${PY}"
 go_generate: export RELEASE_VERSION="${VERSION}"
 go_generate:
@@ -177,4 +179,4 @@ sample-bundle:
 venv:
 	@python3 -m venv venv
 	@venv/bin/pip install -U pip wheel
-	@venv/bin/pip install -U ansible==5.6.0 jmespath dnspython ansible-lint
+	@venv/bin/pip install -U ansible=="${ANSIBLE}" jmespath dnspython ansible-lint
