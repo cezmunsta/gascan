@@ -32,6 +32,7 @@ func printVersion() {
 	fmt.Println("Go Version:", runtime.Version())
 	fmt.Println("Arch:", runtime.GOOS, runtime.GOARCH)
 	fmt.Println("Ansible Version:", AnsibleVersion)
+	fmt.Println("Bundle Version:", BundleVersion)
 	fmt.Println("Python Version:", PythonVersion)
 }
 
