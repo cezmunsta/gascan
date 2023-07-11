@@ -313,14 +313,11 @@ func prepareHost(baseDir string, binDir string, configDir string) error {
 		}
 	}
 
-	hi := ""
-	ht := ""
+	hi, _ := generateHash("/etc/machine-id")
+	ht, _ := generateHash("/etc/machine-id")
 
 	// Generate a config for the dynamic inventory
 	if _, err := os.Stat(dynInventoryConf); err != nil {
-		hi, _ = generateHash("/etc/machine-id")
-		ht, _ = generateHash("/etc/machine-id")
-
 		sampleInventoryConfig = SampleInventoryConfig{
 			Headers: map[string]string{
 				"Content-type":    "application/json",
