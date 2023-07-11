@@ -104,7 +104,7 @@ func flags() {
 	if *testFlag {
 		Config.Mode += testMode
 	}
-	if !*noConfigFlag && Config.Inventory == "" {
+	if !*noConfigFlag && Config.Inventory == "" && optInDefaultOn[os.Getenv("GASCAN_DEFAULT_INVENTORY")] {
 		Config.Mode += configMode
 	}
 	if !*noDeployFlag {
