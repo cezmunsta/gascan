@@ -224,6 +224,14 @@ func prepareHost(baseDir string, binDir string, configDir string) error {
 	tempInventory := filepath.Join(baseDir, "temp-inventory.yaml")
 	vaultKey := filepath.Join(configDir, ".vault-key")
 
+	// Extract default.cfg to ~/.ansible.cfg
+	if ExtractAnsibleConfig {
+		fmt.Println("Extracting default.cfg to ~/.ansible.cfg")
+		if c, err := ioutil.ReadFile(ansibleConfigSrc); err == nil {
+			extractToFile(ansibleConfig, c, 0o640)
+		}
+	}
+
 	// Create the config directory
 	fmt.Println("Creating config directory:", configDir)
 	if err := os.MkdirAll(configDir, 0o700); err != nil {
@@ -298,9 +306,11 @@ func prepareHost(baseDir string, binDir string, configDir string) error {
 	}
 
 	// Copy the dynamic inventory script
-	if c, err := ioutil.ReadFile(dynInventorySrc); err == nil {
-		fmt.Printf("Copying dynamic inventory '%s' to '%s'\n", dynInventorySrc, dynInventory)
-		extractToFile(dynInventory, c, 0o550)
+	if ExtractDynamicInventory {
+		if c, err := ioutil.ReadFile(dynInventorySrc); err == nil {
+			fmt.Printf("Copying dynamic inventory '%s' to '%s'\n", dynInventorySrc, dynInventory)
+			extractToFile(dynInventory, c, 0o550)
+		}
 	}
 
 	hi := ""
