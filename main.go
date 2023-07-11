@@ -287,7 +287,7 @@ func prepareHost(baseDir string, binDir string, configDir string) error {
 
 	}
 
-	// Generat a config for the connetion tool
+	// Generate a config for the connection tool
 	if _, err := os.Stat(connectionToolConf); err != nil {
 		sampleConnectionToolConfig := SampleConnectionToolConfig{
 			ServerAddress: "https://localhost:8443",
