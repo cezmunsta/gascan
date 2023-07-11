@@ -34,9 +34,9 @@ func createWorkspace() string {
 }
 
 // RunPlaybook via ansible-playbook
-func RunPlaybook(args ...string) bool {
+func RunPlaybook(ansibleConfig string, args ...string) bool {
 	c := generateCommand(Ansible, args...)
-	c.Env = append(os.Environ(), "PEX_SCRIPT=ansible-playbook", fmt.Sprintf("ANSIBLE_CONFIG=%s", path.Dir(path.Dir(args[0]))))
+	c.Env = append(os.Environ(), "PEX_SCRIPT=ansible-playbook", fmt.Sprintf("ANSIBLE_CONFIG=%s", ansibleConfig))
 
 	Logger.Debug("Executing playbook: %s", c.Env)
 
