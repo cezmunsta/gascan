@@ -24,8 +24,8 @@ const (
 
 	extractMessage string = `
 # Add the following to your shell profile:
-export ANSIBLE_INVENTORY='%s,%s' \
-       ANSIBLE_VAULT_PASSWORD_FILE='%s' \
+export ANSIBLE_VAULT_PASSWORD_FILE='%s' \
+       GASCAN_DEFAULT_INVENTORY=0 \
        GASCAN_INVENTORY_CONFIG_FILE='%s'
 
 # Next steps:
@@ -34,7 +34,7 @@ Identifier: %s
 Token: %s
 
 ## If you need to install PMM
-gascan --monitor=%s --inventory=%s --playbook=pmm-server.yaml%s
+gascan --monitor=%s --playbook=pmm-server.yaml%s
 
 ## To protect any secrets
 ANSIBLE_VAULT_PASSWORD_FILE=%s ansible-vault encrypt %s
@@ -88,6 +88,8 @@ var (
 	dynamicInventory []byte
 
 	isDone bool
+
+	optInDefaultOn = map[string]bool{"": true, "yes": true, "1": true}
 
 	//go:embed build/ansible
 	pex []byte
@@ -352,8 +354,7 @@ func prepareHost(baseDir string, binDir string, configDir string) error {
 		p = " --passwordless-sudo"
 	}
 
-	fmt.Printf(extractMessage, dynInventory, secrets, vaultKey, dynInventoryConf,
-		hi, ht, Config.Monitor, secrets, p, vaultKey, secrets)
+	fmt.Printf(extractMessage, vaultKey, dynInventoryConf, hi, ht, Config.Monitor, p, vaultKey, secrets)
 
 	return nil
 }
@@ -400,12 +401,12 @@ func main() {
 	extractToFile(ConnectionTool, connectTool, 0o550)
 	extractToFile(DynamicInventoryScript, dynamicInventory, 0o550)
 
-	if newPath, err := checkInventoryStatus(inventory, tmpDir); err != nil {
-		Logger.Warning("unable to locate inventory '%s', '%s' will be used instead", inventory, newPath)
-		inventory = newPath
-	}
+	if optInDefaultOn[os.Getenv("GASCAN_DEFAULT_INVENTORY")] {
+		if newPath, err := checkInventoryStatus(inventory, tmpDir); err != nil {
+			Logger.Warning("unable to locate inventory '%s', '%s' will be used instead", inventory, newPath)
+			inventory = newPath
+		}
 
-	if os.Getenv("ANSIBLE_INVENTORY") == "" || !strings.Contains(inventory, ",") {
 		playArgs = append(playArgs, "--inventory", inventory)
 	}
 
