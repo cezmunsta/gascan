@@ -212,6 +212,8 @@ func generateVaultKey(path string) error {
 }
 
 func prepareHost(baseDir string, binDir string, configDir string) error {
+	ansibleConfig := filepath.Join(os.Getenv("HOME"), ".ansible.cfg")
+	ansibleConfigSrc := filepath.Join(baseDir, "default.cfg")
 	ansibleHelper := filepath.Join(binDir, "ansible.sh")
 	ansiblePex := filepath.Join(binDir, "ansible.pex")
 	connectionTool := filepath.Join(binDir, "connect.py")
@@ -376,6 +378,7 @@ func main() {
 	ConnectionTool = filepath.Join(tmpDir, "connect.py")
 	DynamicInventoryScript = filepath.Join(tmpDir, "dynamic-inventory.py")
 
+	ansibleConfig := strings.Replace(Ansible, "ansible.pex", "default.cfg", 1)
 	inventory := Config.Inventory
 	playArgs := []string{}
 	pp := filepath.Join(tmpDir, Config.Playbook)
@@ -398,8 +401,8 @@ func main() {
 			a := strings.Join(playArgs, " ")
 			Logger.Info("Your workspace has been left in place:", tmpDir)
 			fmt.Println("Ansible:", Ansible)
-			fmt.Println("Run ping test: ANSIBLE_CONFIG="+strings.Replace(Ansible, "ansible.pex", "default.cfg", 1), "PEX_SCRIPT=ansible-playbook ", Ansible, a, tp)
-			fmt.Println("Run deploy: ANSIBLE_CONFIG="+strings.Replace(Ansible, "ansible.pex", "default.cfg", 1), "PEX_SCRIPT=ansible-playbook ", Ansible, a, pp)
+			fmt.Println("Run ping test: ANSIBLE_CONFIG="+ansibleConfig, "PEX_SCRIPT=ansible-playbook ", Ansible, a, tp)
+			fmt.Println("Run deploy: ANSIBLE_CONFIG="+ansibleConfig, "PEX_SCRIPT=ansible-playbook ", Ansible, a, pp)
 		}
 	}()
 
@@ -437,12 +440,11 @@ func main() {
 
 	if Config.Mode&testMode > 0 {
 		a := append([]string{tp}, playArgs...)
-		RunPlaybook(a...)
+		RunPlaybook(ansibleConfig, a...)
 	}
 
 	if Config.Mode&deployMode > 0 {
 		a := append([]string{pp}, playArgs...)
-
-		isDone = RunPlaybook(a...)
+		isDone = RunPlaybook(ansibleConfig, a...)
 	}
 }
