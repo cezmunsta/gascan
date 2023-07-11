@@ -66,6 +66,8 @@ func flags() {
 	flag.StringVar(&Config.SkipTags, "skip-tags", "", "Specify tags to skip for automation")
 	flag.StringVar(&Config.Tags, "tags", "", "Specify tags for automation")
 
+	flag.Parse()
+
 	switch strings.ToLower(Config.LogLevel) {
 	case "debug":
 		Logger.Level = debugLevel
@@ -83,8 +85,6 @@ func flags() {
 		Logger.Level = errorLevel
 		Logger.Prefix = "ERROR"
 	}
-
-	flag.Parse()
 
 	if *versionFlag {
 		printVersion()
