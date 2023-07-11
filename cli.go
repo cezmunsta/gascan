@@ -66,6 +66,8 @@ func flags() {
 	flag.StringVar(&Config.SkipTags, "skip-tags", "", "Specify tags to skip for automation")
 	flag.StringVar(&Config.Tags, "tags", "", "Specify tags for automation")
 
+	flag.Parse()
+
 	switch strings.ToLower(Config.LogLevel) {
 	case "debug":
 		Logger.Level = debugLevel
@@ -83,8 +85,6 @@ func flags() {
 		Logger.Level = errorLevel
 		Logger.Prefix = "ERROR"
 	}
-
-	flag.Parse()
 
 	if *versionFlag {
 		printVersion()
@@ -104,7 +104,7 @@ func flags() {
 	if *testFlag {
 		Config.Mode += testMode
 	}
-	if !*noConfigFlag && Config.Inventory == "" {
+	if !*noConfigFlag && Config.Inventory == "" && optInDefaultOn[os.Getenv("GASCAN_DEFAULT_INVENTORY")] {
 		Config.Mode += configMode
 	}
 	if !*noDeployFlag {

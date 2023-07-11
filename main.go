@@ -24,8 +24,8 @@ const (
 
 	extractMessage string = `
 # Add the following to your shell profile:
-export ANSIBLE_INVENTORY='%s,%s' \
-       ANSIBLE_VAULT_PASSWORD_FILE='%s' \
+export ANSIBLE_VAULT_PASSWORD_FILE='%s' \
+       GASCAN_DEFAULT_INVENTORY=0 \
        GASCAN_INVENTORY_CONFIG_FILE='%s'
 
 # Next steps:
@@ -34,7 +34,7 @@ Identifier: %s
 Token: %s
 
 ## If you need to install PMM
-gascan --monitor=%s --inventory=%s --playbook=pmm-server.yaml%s
+gascan --monitor=%s --playbook=pmm-server.yaml%s
 
 ## To protect any secrets
 ANSIBLE_VAULT_PASSWORD_FILE=%s ansible-vault encrypt %s
@@ -88,6 +88,8 @@ var (
 	dynamicInventory []byte
 
 	isDone bool
+
+	optInDefaultOn = map[string]bool{"": true, "yes": true, "1": true}
 
 	//go:embed build/ansible
 	pex []byte
@@ -210,6 +212,8 @@ func generateVaultKey(path string) error {
 }
 
 func prepareHost(baseDir string, binDir string, configDir string) error {
+	ansibleConfig := filepath.Join(os.Getenv("HOME"), ".ansible.cfg")
+	ansibleConfigSrc := filepath.Join(baseDir, "default.cfg")
 	ansibleHelper := filepath.Join(binDir, "ansible.sh")
 	ansiblePex := filepath.Join(binDir, "ansible.pex")
 	connectionTool := filepath.Join(binDir, "connect.py")
@@ -221,6 +225,14 @@ func prepareHost(baseDir string, binDir string, configDir string) error {
 	secrets := filepath.Join(configDir, "secrets.yaml")
 	tempInventory := filepath.Join(baseDir, "temp-inventory.yaml")
 	vaultKey := filepath.Join(configDir, ".vault-key")
+
+	// Extract default.cfg to ~/.ansible.cfg
+	if ExtractAnsibleConfig {
+		fmt.Println("Extracting default.cfg to ~/.ansible.cfg")
+		if c, err := ioutil.ReadFile(ansibleConfigSrc); err == nil {
+			extractToFile(ansibleConfig, c, 0o640)
+		}
+	}
 
 	// Create the config directory
 	fmt.Println("Creating config directory:", configDir)
@@ -277,7 +289,7 @@ func prepareHost(baseDir string, binDir string, configDir string) error {
 
 	}
 
-	// Generat a config for the connetion tool
+	// Generate a config for the connection tool
 	if _, err := os.Stat(connectionToolConf); err != nil {
 		sampleConnectionToolConfig := SampleConnectionToolConfig{
 			ServerAddress: "https://localhost:8443",
@@ -296,19 +308,18 @@ func prepareHost(baseDir string, binDir string, configDir string) error {
 	}
 
 	// Copy the dynamic inventory script
-	if c, err := ioutil.ReadFile(dynInventorySrc); err == nil {
-		fmt.Printf("Copying dynamic inventory '%s' to '%s'\n", dynInventorySrc, dynInventory)
-		extractToFile(dynInventory, c, 0o550)
+	if ExtractDynamicInventory {
+		if c, err := ioutil.ReadFile(dynInventorySrc); err == nil {
+			fmt.Printf("Copying dynamic inventory '%s' to '%s'\n", dynInventorySrc, dynInventory)
+			extractToFile(dynInventory, c, 0o550)
+		}
 	}
 
-	hi := ""
-	ht := ""
+	hi, _ := generateHash("/etc/machine-id")
+	ht, _ := generateHash("/etc/machine-id")
 
 	// Generate a config for the dynamic inventory
 	if _, err := os.Stat(dynInventoryConf); err != nil {
-		hi, _ = generateHash("/etc/machine-id")
-		ht, _ = generateHash("/etc/machine-id")
-
 		sampleInventoryConfig = SampleInventoryConfig{
 			Headers: map[string]string{
 				"Content-type":    "application/json",
@@ -352,8 +363,7 @@ func prepareHost(baseDir string, binDir string, configDir string) error {
 		p = " --passwordless-sudo"
 	}
 
-	fmt.Printf(extractMessage, dynInventory, secrets, vaultKey, dynInventoryConf,
-		hi, ht, Config.Monitor, secrets, p, vaultKey, secrets)
+	fmt.Printf(extractMessage, vaultKey, dynInventoryConf, hi, ht, Config.Monitor, p, vaultKey, secrets)
 
 	return nil
 }
@@ -368,6 +378,7 @@ func main() {
 	ConnectionTool = filepath.Join(tmpDir, "connect.py")
 	DynamicInventoryScript = filepath.Join(tmpDir, "dynamic-inventory.py")
 
+	ansibleConfig := strings.Replace(Ansible, "ansible.pex", "default.cfg", 1)
 	inventory := Config.Inventory
 	playArgs := []string{}
 	pp := filepath.Join(tmpDir, Config.Playbook)
@@ -390,8 +401,8 @@ func main() {
 			a := strings.Join(playArgs, " ")
 			Logger.Info("Your workspace has been left in place:", tmpDir)
 			fmt.Println("Ansible:", Ansible)
-			fmt.Println("Run ping test: ANSIBLE_CONFIG="+strings.Replace(Ansible, "ansible.pex", "default.cfg", 1), "PEX_SCRIPT=ansible-playbook ", Ansible, a, tp)
-			fmt.Println("Run deploy: ANSIBLE_CONFIG="+strings.Replace(Ansible, "ansible.pex", "default.cfg", 1), "PEX_SCRIPT=ansible-playbook ", Ansible, a, pp)
+			fmt.Println("Run ping test: ANSIBLE_CONFIG="+ansibleConfig, "PEX_SCRIPT=ansible-playbook ", Ansible, a, tp)
+			fmt.Println("Run deploy: ANSIBLE_CONFIG="+ansibleConfig, "PEX_SCRIPT=ansible-playbook ", Ansible, a, pp)
 		}
 	}()
 
@@ -400,12 +411,12 @@ func main() {
 	extractToFile(ConnectionTool, connectTool, 0o550)
 	extractToFile(DynamicInventoryScript, dynamicInventory, 0o550)
 
-	if newPath, err := checkInventoryStatus(inventory, tmpDir); err != nil {
-		Logger.Warning("unable to locate inventory '%s', '%s' will be used instead", inventory, newPath)
-		inventory = newPath
-	}
+	if optInDefaultOn[os.Getenv("GASCAN_DEFAULT_INVENTORY")] {
+		if newPath, err := checkInventoryStatus(inventory, tmpDir); err != nil {
+			Logger.Warning("unable to locate inventory '%s', '%s' will be used instead", inventory, newPath)
+			inventory = newPath
+		}
 
-	if os.Getenv("ANSIBLE_INVENTORY") == "" || !strings.Contains(inventory, ",") {
 		playArgs = append(playArgs, "--inventory", inventory)
 	}
 
@@ -429,12 +440,11 @@ func main() {
 
 	if Config.Mode&testMode > 0 {
 		a := append([]string{tp}, playArgs...)
-		RunPlaybook(a...)
+		RunPlaybook(ansibleConfig, a...)
 	}
 
 	if Config.Mode&deployMode > 0 {
 		a := append([]string{pp}, playArgs...)
-
-		isDone = RunPlaybook(a...)
+		isDone = RunPlaybook(ansibleConfig, a...)
 	}
 }

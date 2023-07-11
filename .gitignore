@@ -3,3 +3,5 @@ automation/inventory.yaml
 build
 bundle.tgz
 venv
+extract.go
+version.go
