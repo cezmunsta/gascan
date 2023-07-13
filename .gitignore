@@ -4,4 +4,5 @@ build
 bundle.tgz
 venv
 extract.go
+playbook.go
 version.go

@@ -3,9 +3,16 @@
 package main
 
 import (
+	"archive/tar"
+	"bytes"
+	"compress/gzip"
+	_ "embed"
+	"flag"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"os"
+	"sort"
 	"strings"
 )
 
@@ -21,6 +28,15 @@ const (
 	// ExtractDynamicInventory controls whether the dynamic inventory script
 	// should be extracted from the binary
 	ExtractDynamicInventory = %v
+)
+`
+	playGo = `// Code generated .* DO NOT EDIT\.
+package main
+
+const (
+	// PlaybookList is a newline-delimited list of playbooks
+	// found in the embedded tarball, avoids inspection
+	PlaybookList = "%s"
 )
 `
 	versionGo = `// Code generated .* DO NOT EDIT\.
@@ -42,7 +58,12 @@ const (
 `
 )
 
-var optInDefaultOn = map[string]bool{"": true, "yes": true, "1": true}
+var (
+	//go:embed bundle.tgz
+	bundle []byte
+
+	optInDefaultOn = map[string]bool{"": true, "yes": true, "1": true}
+)
 
 func generateVersion() {
 	ansibleVersion := strings.ReplaceAll(os.Getenv("ANSIBLE_VERSION"), `"`, "")
@@ -91,7 +112,61 @@ func generateExtract() {
 	}
 }
 
+func generatePlaybook() {
+	var plays []string
+
+	buf := bytes.NewBuffer(bundle)
+	gbuf, err := gzip.NewReader(buf)
+	if err != nil {
+		panic("unable to read with gzip")
+	}
+
+	tr := tar.NewReader(gbuf)
+
+	for {
+		hdr, err := tr.Next()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			panic("failed to extract tarball")
+		}
+
+		// Fail if an unexpected prefix exists, or the path ascends the directory tree
+		if strings.Contains(hdr.Name, "..") {
+			continue
+		}
+
+		pth := strings.Replace(hdr.Name, "automation/", "", 1)
+		if !strings.HasSuffix(pth, ".yaml") || strings.Contains(pth, "/") {
+			continue
+		}
+		plays = append(plays, pth)
+	}
+
+	sort.Strings(plays)
+
+	if err := ioutil.WriteFile("playbook.go", []byte(fmt.Sprintf(playGo, strings.Join(plays, ","))), 0o644); err != nil {
+		panic("unable to write extract.go")
+	}
+}
+
 func main() {
-	generateExtract()
-	generateVersion()
+	genExtractFlag := flag.Bool("generate-extract", false, "Generate extract.go")
+	genPlaybookFlag := flag.Bool("generate-playbook", false, "Generate playbook.go")
+	genVersionFlag := flag.Bool("generate-version", false, "Generate version.go")
+
+	flag.Parse()
+
+	if *genExtractFlag {
+		generateExtract()
+	}
+
+	if *genPlaybookFlag {
+		generatePlaybook()
+	}
+
+	if *genVersionFlag {
+		generateVersion()
+	}
 }

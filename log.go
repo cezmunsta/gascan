@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"log"
+	"os"
 )
 
 const (
@@ -54,12 +55,13 @@ func (l *Log) Error(msg string, args ...interface{}) bool {
 }
 
 // Fatal messages
-func (l *Log) Fatal(msg string, args ...interface{}) bool {
+func (l *Log) Fatal(msg string, args ...interface{}) {
 	if l.Level > fatalLevel {
-		return false
+		return
 	}
 
-	return l.log(debugLevel, msg, args...)
+	l.log(debugLevel, msg, args...)
+	os.Exit(1)
 }
 
 // Info messages

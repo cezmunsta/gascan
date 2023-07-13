@@ -27,6 +27,20 @@ type Flags struct {
 // EntryPointPlaybook defines the playbook that is executed at runtime
 var EntryPointPlaybook = "pmm-full.yaml"
 
+func checkPlaybook(play string) {
+	exists := false
+	for _, p := range strings.Split(PlaybookList, ",") {
+		if play == p {
+			exists = true
+			break
+		}
+	}
+
+	if !exists {
+		Logger.Fatal("Playbook %s is unavailable, please use --list-plays to see what's available", play)
+	}
+}
+
 func printVersion() {
 	fmt.Println("Version:", Version)
 	fmt.Println("Go Version:", runtime.Version())
@@ -50,6 +64,7 @@ func flags() {
 
 	extractOnlyFlag := flag.Bool("extract-bundle", false, "Just extract the bundle, use with --extract-path")
 	generateHashFlag := flag.Bool("generate-hash", false, "Generate a sha256 time-based hash")
+	listPlaysFlag := flag.Bool("list-plays", false, "List the available playbooks")
 	noConfigFlag := flag.Bool("skip-configure", false, "Skip initial configuration")
 	noDeployFlag := flag.Bool("skip-deploy", false, "Skip deploying the monitor host")
 	testFlag := flag.Bool("test", false, "Run the test play (ping)")
@@ -90,6 +105,13 @@ func flags() {
 		printVersion()
 		os.Exit(0)
 	}
+
+	if *listPlaysFlag {
+		fmt.Println(strings.ReplaceAll(PlaybookList, ",", "\n"))
+		os.Exit(0)
+	}
+
+	checkPlaybook(Config.Playbook)
 
 	if *generateHashFlag {
 		hash, err := generateHash("/etc/machine-id")
