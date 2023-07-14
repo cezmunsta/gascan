@@ -106,8 +106,13 @@ build: export VDIR=${BUILD_DIR}/${OS}/${ARCH}/${BUILD_BASE_TAG}
 build: export VNAME=${VDIR}/${NAME}-py${PY}
 build: export CGO_ENABLED=0
 build: build_prep pack check
+ifeq ($(DEBUG_BUILD), 1)
 	@${GO} build -o "${VNAME}" -trimpath -gcflags="all=-N -l" \
 		-ldflags="-X main.EntryPointPlaybook=${ENTRYPOINT} -X main.HeaderIdentifier=${AUTH_FIELD_1} -X main.HeaderToken=${AUTH_FIELD_2} -X main.HeaderMonitorName=${AUTH_FIELD_3}"
+else
+	@${GO} build -o "${VNAME}" -trimpath \
+		-ldflags="-s -w -X main.EntryPointPlaybook=${ENTRYPOINT} -X main.HeaderIdentifier=${AUTH_FIELD_1} -X main.HeaderToken=${AUTH_FIELD_2} -X main.HeaderMonitorName=${AUTH_FIELD_3}"
+endif
 	@cp -a "${VNAME}" "${BUILD_DIR}/gascan"
 	@rm -f version.go
 
@@ -128,6 +133,7 @@ check:
 	@echo check: No Go files to check
 endif
 
+test: export GASCAN_TEST_NOEXIT=1
 test: go_generate check
 	@${GO} test ./...
 	@rm -f version.go
