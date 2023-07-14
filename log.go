@@ -61,7 +61,10 @@ func (l *Log) Fatal(msg string, args ...interface{}) {
 	}
 
 	l.log(debugLevel, msg, args...)
-	os.Exit(1)
+
+	if os.Getenv("GASCAN_TEST_NOEXIT") != "1" {
+		os.Exit(1)
+	}
 }
 
 // Info messages
