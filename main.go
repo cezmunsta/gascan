@@ -89,7 +89,8 @@ var (
 
 	isDone bool
 
-	optInDefaultOn = map[string]bool{"": true, "yes": true, "1": true}
+	optInDefaultOn  = map[string]bool{"": true, "true": true, "yes": true, "1": true}
+	optInDefaultOff = map[string]bool{"true": true, "yes": true, "1": true}
 
 	//go:embed build/ansible
 	pex []byte
