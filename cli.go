@@ -27,7 +27,7 @@ type Flags struct {
 // EntryPointPlaybook defines the playbook that is executed at runtime
 var EntryPointPlaybook = "pmm-full.yaml"
 
-func checkPlaybook(play string) {
+func checkPlaybook(play string) bool {
 	exists := false
 	for _, p := range strings.Split(PlaybookList, ",") {
 		if play == p {
@@ -36,9 +36,7 @@ func checkPlaybook(play string) {
 		}
 	}
 
-	if !exists {
-		Logger.Fatal("Playbook %s is unavailable, please use --list-plays to see what's available", play)
-	}
+	return exists
 }
 
 func printVersion() {
@@ -57,9 +55,31 @@ func flags() {
 	envBecomePass := os.Getenv("ANSIBLE_BECOME_PASSWORD")
 	envBecomePassFile := os.Getenv("ANSIBLE_BECOME_PASSWORD_FILE")
 
+	envEditor := os.Getenv("EDITOR")
+	envLogLevel := os.Getenv("GASCAN_FLAG_LOG_LEVEL")
+	envPasswordlessSudo := os.Getenv("GASCAN_FLAG_PASSWORDLESS_SUDO")
+	envPlaybook := os.Getenv("GASCAN_FLAG_PLAYBOOK")
+	envSkipTags := os.Getenv("GASCAN_FLAG_SKIP_TAGS")
+	envTags := os.Getenv("GASCAN_FLAG_TAGS")
+
+	// Set default values for flags using optional environment settings
 	needsBecomePass := true
-	if envBecomePass != "" || envBecomePassFile != "" {
+	if envBecomePass != "" || envBecomePassFile != "" || optInDefaultOff[envPasswordlessSudo] {
 		needsBecomePass = false
+	}
+
+	defaultEditor := "vi"
+	if envEditor != "" {
+		defaultEditor = envEditor
+	}
+
+	defaultLogLevel := "error"
+	if envLogLevel != "" {
+		defaultLogLevel = envLogLevel
+	}
+
+	if PlaybookList == envPlaybook || strings.HasPrefix(PlaybookList, envPlaybook+",") || strings.Contains(PlaybookList, ","+envPlaybook+",") || strings.HasSuffix(PlaybookList, ","+envPlaybook) {
+		EntryPointPlaybook = envPlaybook
 	}
 
 	extractOnlyFlag := flag.Bool("extract-bundle", false, "Just extract the bundle, use with --extract-path")
@@ -70,16 +90,16 @@ func flags() {
 	testFlag := flag.Bool("test", false, "Run the test play (ping)")
 	versionFlag := flag.Bool("version", false, "Show the version")
 
-	flag.BoolVar(&Config.NoSudoPassword, "passwordless-sudo", !needsBecomePass, "The use of sudo does not require a password")
+	flag.BoolVar(&Config.NoSudoPassword, "passwordless-sudo", !needsBecomePass, "The use of sudo does not require a password [GASCAN_FLAG_PASSWORDLESS_SUDO]")
 
-	flag.StringVar(&Config.Editor, "editor", "vi", "Path to preferred editor")
+	flag.StringVar(&Config.Editor, "editor", defaultEditor, "Path to preferred editor [EDITOR]")
 	flag.StringVar(&Config.ExtractPath, "extract-path", os.TempDir(), "Extract the bundle to this path, use with --extract-bundle, when TMPDIR cannot execute, etc")
-	flag.StringVar(&Config.Inventory, "inventory", envInventory, "Set a custom inventory")
-	flag.StringVar(&Config.LogLevel, "log-level", "error", "Set the level of logging verbosity")
+	flag.StringVar(&Config.Inventory, "inventory", envInventory, "Set a custom inventory [ANSIBLE_INVENTORY]. A default inventory is used when empty, which can be disabled [GASCAN_DEFAULT_INVENTORY]")
+	flag.StringVar(&Config.LogLevel, "log-level", defaultLogLevel, "Set the level of logging verbosity [GASCAN_FLAG_LOG_LEVEL]")
 	flag.StringVar(&Config.Monitor, "monitor", "monitor", "Monitor alias")
-	flag.StringVar(&Config.Playbook, "playbook", EntryPointPlaybook, "Playbook used for deployment")
-	flag.StringVar(&Config.SkipTags, "skip-tags", "", "Specify tags to skip for automation")
-	flag.StringVar(&Config.Tags, "tags", "", "Specify tags for automation")
+	flag.StringVar(&Config.Playbook, "playbook", EntryPointPlaybook, "Playbook used for deployment [GASCAN_FLAG_PLAYBOOK]")
+	flag.StringVar(&Config.SkipTags, "skip-tags", envSkipTags, "Specify tags to skip for automation [GASCAN_FLAG_SKIP_TAGS]")
+	flag.StringVar(&Config.Tags, "tags", envTags, "Specify tags for automation [GASCAN_FLAG_TAGS]")
 
 	flag.Parse()
 
@@ -111,7 +131,9 @@ func flags() {
 		os.Exit(0)
 	}
 
-	checkPlaybook(Config.Playbook)
+	if !checkPlaybook(Config.Playbook) {
+		Logger.Fatal("Playbook %s is unavailable, please use --list-plays to see what's available", Config.Playbook)
+	}
 
 	if *generateHashFlag {
 		hash, err := generateHash("/etc/machine-id")
