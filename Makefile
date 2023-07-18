@@ -133,6 +133,8 @@ check:
 	@echo check: No Go files to check
 endif
 
+test: export EXTRACT_ANSIBLE_CONFIG=1
+test: export EXTRACT_DYNAMIC_INVENTORY=1
 test: export GASCAN_TEST_NOEXIT=1
 test: go_generate check
 	@${GO} test ./...
