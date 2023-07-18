@@ -156,5 +156,6 @@ func flags() {
 	}
 	if *extractOnlyFlag {
 		Config.Mode = extractMode
+		os.Setenv("GASCAN_TEST_NOEXIT", "1")
 	}
 }
