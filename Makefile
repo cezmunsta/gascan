@@ -106,7 +106,7 @@ build: export GOARCH=${ARCH}
 build: export VDIR=${BUILD_DIR}/${OS}/${ARCH}/${BUILD_BASE_TAG}
 build: export VNAME=${VDIR}/${NAME}-py${PY}
 build: export CGO_ENABLED=0
-build: build_prep pack check
+build: build_prep check
 ifeq ($(DEBUG_BUILD), 1)
 	@${GO} build -o "${VNAME}" -trimpath -gcflags="all=-N -l" \
 		-ldflags="-X main.EntryPointPlaybook=${ENTRYPOINT} -X main.HeaderIdentifier=${AUTH_FIELD_1} -X main.HeaderToken=${AUTH_FIELD_2} -X main.HeaderMonitorName=${AUTH_FIELD_3}"
@@ -121,7 +121,7 @@ build_prep: export GOOS=${OS}
 build_prep: export GOARCH=${ARCH}
 build_prep: export VDIR=${BUILD_DIR}/${OS}/${ARCH}/${BUILD_BASE_TAG}
 build_prep: export VNAME=${VDIR}/ansible${PY}
-build_prep: go_generate
+build_prep: pack go_generate
 	@rm -vf "${BUILD_DIR}/gascan"
 	@cp -a "${VNAME}" "${BUILD_DIR}/ansible"
 
