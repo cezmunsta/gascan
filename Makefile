@@ -85,7 +85,8 @@ ansible: ansible_image ansible_pex
 ansible_image: export VNAME=${NAME}/${BUILD_BASE_TAG}-ansible:${VERSION}
 ansible_image:
 	@podman image exists "${VNAME}" && podman image rm "${VNAME}" || true
-	@buildah bud -f images/ansible/Containerfile --build-arg BASE="${BUILD_BASE}" \
+	@buildah bud -f images/ansible/Containerfile --pull \
+	  --build-arg BASE="${BUILD_BASE}" \
 	  --build-arg PACKAGES_OS="${PACKAGES_OS}" --build-arg PACKAGES_PIP="${PACKAGES_PIP}" \
 	  --build-arg ANSIBLE="${ANSIBLE}" --squash --no-cache --force-rm --compress --tag "${VNAME}"
 

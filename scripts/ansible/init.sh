@@ -38,6 +38,7 @@ function setup_debian {
     esac
 
     apt update -qqy
+    apt upgrade -qqy
     apt install -qqy "${packages[@]}"
     apt clean -qqy
 }
@@ -58,6 +59,7 @@ function setup_redhat {
         "centos:stream9") packages+=( python3 python-wheel-wheel ); repos=( "--enablerepo=crb" );
     esac
 
+    dnf upgrade -q -y
     dnf install -y "${repos[@]}" "${packages[@]}"
     dnf clean all
 }
@@ -75,6 +77,7 @@ function setup_redhat_legacy {
     esac
 
     yum makecache -y
+    yum upgrade -q -y
     yum install -y centos-release-scl
     yum install -y "${packages[@]}"
     yum clean all
