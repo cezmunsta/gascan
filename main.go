@@ -87,6 +87,8 @@ var (
 	//go:embed scripts/dynamic-inventory/get_inventory.py
 	dynamicInventory []byte
 
+	exitCode int
+
 	isDone bool
 
 	optInDefaultOn  = map[string]bool{"": true, "true": true, "yes": true, "1": true}
@@ -372,6 +374,7 @@ func prepareHost(baseDir string, binDir string, configDir string) error {
 func main() {
 	flags()
 
+	exitCode = 0
 	isDone = false
 	tmpDir := createWorkspace()
 
@@ -405,6 +408,8 @@ func main() {
 			fmt.Println("Run ping test: ANSIBLE_CONFIG="+ansibleConfig, "PEX_SCRIPT=ansible-playbook ", Ansible, a, tp)
 			fmt.Println("Run deploy: ANSIBLE_CONFIG="+ansibleConfig, "PEX_SCRIPT=ansible-playbook ", Ansible, a, pp)
 		}
+
+		os.Exit(exitCode)
 	}()
 
 	extractBundle(bundle, tmpDir)
@@ -446,6 +451,6 @@ func main() {
 
 	if Config.Mode&deployMode > 0 {
 		a := append([]string{pp}, playArgs...)
-		isDone = RunPlaybook(ansibleConfig, a...)
+		isDone, exitCode = RunPlaybook(ansibleConfig, a...)
 	}
 }
