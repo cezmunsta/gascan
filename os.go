@@ -34,7 +34,7 @@ func createWorkspace() string {
 }
 
 // RunPlaybook via ansible-playbook
-func RunPlaybook(ansibleConfig string, args ...string) bool {
+func RunPlaybook(ansibleConfig string, args ...string) (bool, int) {
 	c := generateCommand(Ansible, args...)
 	c.Env = append(os.Environ(), "PEX_SCRIPT=ansible-playbook", fmt.Sprintf("ANSIBLE_CONFIG=%s", ansibleConfig))
 
@@ -42,10 +42,10 @@ func RunPlaybook(ansibleConfig string, args ...string) bool {
 
 	if err := c.Run(); err != nil {
 		Logger.Error("failed to execute command '%s': %s", c, err)
-		return false
+		return false, c.ProcessState.ExitCode()
 	}
 
-	return true
+	return true, 0
 }
 
 func editTemplates(path string) error {

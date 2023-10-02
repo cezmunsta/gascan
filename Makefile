@@ -115,7 +115,6 @@ else
 		-ldflags="-s -w -X main.EntryPointPlaybook=${ENTRYPOINT} -X main.HeaderIdentifier=${AUTH_FIELD_1} -X main.HeaderToken=${AUTH_FIELD_2} -X main.HeaderMonitorName=${AUTH_FIELD_3}"
 endif
 	@cp -a "${VNAME}" "${BUILD_DIR}/gascan"
-	@rm -f version.go
 
 build_prep: export GOOS=${OS}
 build_prep: export GOARCH=${ARCH}
