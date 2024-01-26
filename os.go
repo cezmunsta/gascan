@@ -118,7 +118,7 @@ func extractBundle(tgz []byte, targetDir string) bool {
 		}
 
 		// Fail if an unexpected prefix exists, or the path ascends the directory tree
-		if strings.Contains(hdr.Name, "..") {
+		if strings.Contains(hdr.Name, "..") || strings.Contains(hdr.Linkname, "..") {
 			Logger.Warning("unexpected path found during extraction: %v", hdr.Name)
 			continue
 		}
