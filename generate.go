@@ -10,7 +10,6 @@ import (
 	"flag"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"sort"
 	"strings"
@@ -87,7 +86,7 @@ func generateVersion() {
 		panic("env RELEASE_VERSION is undefined")
 	}
 
-	if err := ioutil.WriteFile("version.go", []byte(fmt.Sprintf(versionGo, ansibleVersion, bundleVersion, pythonVersion, version)), 0o644); err != nil {
+	if err := os.WriteFile("version.go", []byte(fmt.Sprintf(versionGo, ansibleVersion, bundleVersion, pythonVersion, version)), 0o644); err != nil {
 		panic("unable to write version.go")
 	}
 }
@@ -107,7 +106,7 @@ func generateExtract() {
 		extractDynamicInventory = false
 	}
 
-	if err := ioutil.WriteFile("extract.go", []byte(fmt.Sprintf(extractGo, extractAnsibleConfig, extractDynamicInventory)), 0o644); err != nil {
+	if err := os.WriteFile("extract.go", []byte(fmt.Sprintf(extractGo, extractAnsibleConfig, extractDynamicInventory)), 0o644); err != nil {
 		panic("unable to write extract.go")
 	}
 }
@@ -146,7 +145,7 @@ func generatePlaybook() {
 
 	sort.Strings(plays)
 
-	if err := ioutil.WriteFile("playbook.go", []byte(fmt.Sprintf(playGo, strings.Join(plays, ","))), 0o644); err != nil {
+	if err := os.WriteFile("playbook.go", []byte(fmt.Sprintf(playGo, strings.Join(plays, ","))), 0o644); err != nil {
 		panic("unable to write extract.go")
 	}
 }

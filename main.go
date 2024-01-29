@@ -7,7 +7,6 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -188,7 +187,7 @@ func generateHash(path string) (string, error) {
 	var machineID []byte
 	newKey := sha256.New()
 
-	if data, err := ioutil.ReadFile(path); err == nil {
+	if data, err := os.ReadFile(path); err == nil {
 		machineID = []byte(fmt.Sprintf("%s-%s", data, time.Now()))
 	}
 
@@ -207,7 +206,7 @@ func generateVaultKey(path string) error {
 		Logger.Fatal("unable to generate hash: %v", err)
 	}
 
-	if err := ioutil.WriteFile(path, []byte(nk), 0o400); err != nil {
+	if err := os.WriteFile(path, []byte(nk), 0o400); err != nil {
 		Logger.Fatal("failed to create vault key '%s': %v", path, err)
 	}
 
@@ -232,7 +231,7 @@ func prepareHost(baseDir string, binDir string, configDir string) error {
 	// Extract default.cfg to ~/.ansible.cfg
 	if ExtractAnsibleConfig {
 		fmt.Println("Extracting default.cfg to ~/.ansible.cfg")
-		if c, err := ioutil.ReadFile(ansibleConfigSrc); err == nil {
+		if c, err := os.ReadFile(ansibleConfigSrc); err == nil {
 			extractToFile(ansibleConfig, c, 0o640)
 		}
 	}
@@ -275,14 +274,14 @@ func prepareHost(baseDir string, binDir string, configDir string) error {
 			generateDefaults(tempInventory)
 		}
 
-		if c, err := ioutil.ReadFile(tempInventory); err == nil {
+		if c, err := os.ReadFile(tempInventory); err == nil {
 			fmt.Printf("Copying temporary inventory '%s' to '%s'\n", tempInventory, secrets)
 			extractToFile(secrets, c, 0o600)
 		}
 	}
 
 	// Copy the connection tool
-	if c, err := ioutil.ReadFile(connectionToolSrc); err == nil {
+	if c, err := os.ReadFile(connectionToolSrc); err == nil {
 		fmt.Printf("Copying connection tool '%s' to '%s'\n", connectionToolSrc, connectionTool)
 		extractToFile(connectionTool, c, 0o550)
 
@@ -305,14 +304,14 @@ func prepareHost(baseDir string, binDir string, configDir string) error {
 			return err
 		}
 
-		if err := ioutil.WriteFile(connectionToolConf, []byte(string(buf)), 0o640); err != nil {
+		if err := os.WriteFile(connectionToolConf, []byte(string(buf)), 0o640); err != nil {
 			return err
 		}
 	}
 
 	// Copy the dynamic inventory script
 	if ExtractDynamicInventory {
-		if c, err := ioutil.ReadFile(dynInventorySrc); err == nil {
+		if c, err := os.ReadFile(dynInventorySrc); err == nil {
 			fmt.Printf("Copying dynamic inventory '%s' to '%s'\n", dynInventorySrc, dynInventory)
 			extractToFile(dynInventory, c, 0o550)
 		}
@@ -341,12 +340,12 @@ func prepareHost(baseDir string, binDir string, configDir string) error {
 			return err
 		}
 
-		if err := ioutil.WriteFile(dynInventoryConf, []byte(string(buf)), 0o640); err != nil {
+		if err := os.WriteFile(dynInventoryConf, []byte(string(buf)), 0o640); err != nil {
 			return err
 		}
 	} else {
 		var st SampleInventoryConfig
-		conf, _ := ioutil.ReadFile(dynInventoryConf)
+		conf, _ := os.ReadFile(dynInventoryConf)
 
 		if err := json.Unmarshal(conf, &st); err != nil {
 			Logger.Warning("unable to parse the inventory config '%s'", dynInventoryConf)
