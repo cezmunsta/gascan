@@ -8,6 +8,7 @@ on:
     - 'automation/**'
     - 'scripts/ansible/**'
     - scripts/dynamic-inventory/get_inventory.py
+    - scripts/connect/connect.py
 
 jobs:
   build:
