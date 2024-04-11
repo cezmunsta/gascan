@@ -364,6 +364,8 @@ class Connect: # pylint: disable=too-many-instance-attributes
                     log().debug('Applying override for %s', k)
                     if k.replace('_', '-') not in runtime_args:
                         config[k] = v
+                    if k == 'netrc_file':
+                        config[k] = FileType('r')(v)
             log().setLevel(config['log_level'].upper())
         except (json.JSONDecodeError, OSError):
             pass
