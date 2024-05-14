@@ -288,7 +288,11 @@ class Connect: # pylint: disable=too-many-instance-attributes
                 return (f'{connect_cmd} --host={service.node.address} --port={service.port} '
                         f'--skip-auto-rehash --comments --safe-updates --connect-timeout=10 '
                         rf'--prompt="{service.node.name} \d> " ')
-            return None
+            if service.type == 'postgresql':
+                return f'{connect_cmd} --host={service.node.address} --port={service.port} '
+            if service.type == 'mongodb':
+                return f'{connect_cmd} --authenticationDatabase=admin --host={service.node.address} --port={service.port} '
+            raise UserWarning(f"Unable to connect to service type {service}")
 
         connections = []
         for _, service in self.services.items():
