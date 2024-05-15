@@ -20,6 +20,8 @@ Usage of gascan:
         Extract the bundle to this path, use with --extract-bundle, when TMPDIR cannot execute, etc (default "/tmp")
   -generate-hash
         Generate a sha256 time-based hash
+  -get-inventory
+        Request the Ansible inventory
   -inventory string
         Set a custom inventory
   -log-level string

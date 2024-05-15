@@ -47,6 +47,21 @@ func RunPlaybook(ansibleConfig string, args ...string) (bool, int) {
 	return true, 0
 }
 
+// ShowInventory via ansible-inventory
+func ShowInventory(ansibleConfig string, args ...string) (bool, int) {
+	c := generateCommand(Ansible, args...)
+	c.Env = append(os.Environ(), "PEX_SCRIPT=ansible-inventory", fmt.Sprintf("ANSIBLE_CONFIG=%s", ansibleConfig))
+
+	Logger.Debug("Showing the inventory: %s", c.Env)
+
+	if err := c.Run(); err != nil {
+		Logger.Error("failed to execute command '%s': %s", c, err)
+		return false, c.ProcessState.ExitCode()
+	}
+
+	return true, 0
+}
+
 func editTemplates(path string) error {
 	args := append([]string{Config.Editor}, strings.Split(path, " ")...)
 	c := generateCommand("command", args...)

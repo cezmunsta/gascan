@@ -13,6 +13,7 @@ type Flags struct {
 	Editor         string
 	EnableGodMode  bool
 	ExtractPath    string
+	GetInventory   bool
 	Inventory      string
 	LogLevel       string
 	Mode           uint
@@ -90,6 +91,7 @@ func flags() {
 	testFlag := flag.Bool("test", false, "Run the test play (ping)")
 	versionFlag := flag.Bool("version", false, "Show the version")
 
+	flag.BoolVar(&Config.GetInventory, "get-inventory", false, "Request the Ansible inventory")
 	flag.BoolVar(&Config.NoSudoPassword, "passwordless-sudo", !needsBecomePass, "The use of sudo does not require a password [GASCAN_FLAG_PASSWORDLESS_SUDO]")
 
 	flag.StringVar(&Config.Editor, "editor", defaultEditor, "Path to preferred editor [EDITOR]")
@@ -148,12 +150,19 @@ func flags() {
 	if *testFlag {
 		Config.Mode += testMode
 	}
+
 	if !*noConfigFlag && Config.Inventory == "" && optInDefaultOn[os.Getenv("GASCAN_DEFAULT_INVENTORY")] {
 		Config.Mode += configMode
 	}
+
 	if !*noDeployFlag {
 		Config.Mode += deployMode
 	}
+
+	if Config.GetInventory {
+		Config.Mode = inventoryMode
+	}
+
 	if *extractOnlyFlag {
 		Config.Mode = extractMode
 		os.Setenv("GASCAN_TEST_NOEXIT", "1")
