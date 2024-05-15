@@ -16,10 +16,11 @@ import (
 )
 
 const (
-	configMode  uint = 2
-	deployMode  uint = 4
-	testMode    uint = 8
-	extractMode uint = 16
+	configMode    uint = 2
+	deployMode    uint = 4
+	testMode      uint = 8
+	extractMode   uint = 16
+	inventoryMode uint = 32
 
 	extractMessage string = `
 # Add the following to your shell profile:
@@ -441,6 +442,12 @@ func main() {
 		if err := editTemplates(tpls); err != nil {
 			Logger.Fatal("unable to make the necessary configuration changes: %v", err)
 		}
+	}
+
+	if Config.Mode&inventoryMode > 0 {
+		Logger.Debug("Requesting the inventory")
+		ShowInventory(ansibleConfig, []string{"--list"}...)
+		os.Exit(0)
 	}
 
 	if Config.Mode&testMode > 0 {
