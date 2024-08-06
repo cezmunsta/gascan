@@ -405,8 +405,8 @@ func main() {
 			a := strings.Join(playArgs, " ")
 			Logger.Info("Your workspace has been left in place:", tmpDir)
 			fmt.Println("Ansible:", Ansible)
-			fmt.Println("Run ping test: ANSIBLE_CONFIG="+ansibleConfig, "PEX_SCRIPT=ansible-playbook ", Ansible, a, tp)
-			fmt.Println("Run deploy: ANSIBLE_CONFIG="+ansibleConfig, "PEX_SCRIPT=ansible-playbook ", Ansible, a, pp)
+			fmt.Println("Run ping test: ANSIBLE_CONFIG="+ansibleConfig, "PEX_SCRIPT=ansible-playbook", Ansible, a, tp)
+			fmt.Println("Run deploy: ANSIBLE_CONFIG="+ansibleConfig, "PEX_SCRIPT=ansible-playbook", Ansible, a, pp)
 		}
 
 		os.Exit(exitCode)
