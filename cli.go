@@ -10,6 +10,7 @@ import (
 
 // Flags provides configuration options
 type Flags struct {
+	ClearCache     bool
 	Editor         string
 	EnableGodMode  bool
 	ExtractPath    string
@@ -91,6 +92,7 @@ func flags() {
 	testFlag := flag.Bool("test", false, "Run the test play (ping)")
 	versionFlag := flag.Bool("version", false, "Show the version")
 
+	flag.BoolVar(&Config.ClearCache, "refresh", false, "Clear inventory caches to allow for a refresh")
 	flag.BoolVar(&Config.GetInventory, "get-inventory", false, "Request the Ansible inventory")
 	flag.BoolVar(&Config.NoSudoPassword, "passwordless-sudo", !needsBecomePass, "The use of sudo does not require a password [GASCAN_FLAG_PASSWORDLESS_SUDO]")
 

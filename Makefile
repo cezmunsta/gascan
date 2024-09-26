@@ -12,7 +12,7 @@ ARCH?=amd64
 AUTH_FIELD_1?=Auth-Id
 AUTH_FIELD_2?=Auth-Token
 AUTH_FIELD_3?=Monitor-Name
-BUILD_BASE?=quay.io/centos/centos:stream8
+BUILD_BASE?=debian:bullseye
 BUILD_DIR?=./build
 BUNDLE_VERSION?=$(shell git rev-parse HEAD)
 ENTRYPOINT?=pmm-full.yaml
@@ -50,10 +50,10 @@ ifeq ($(INSTALL_GO_LINTER), 1)
 	@cd ~ && "${GO}" install golang.org/x/lint/golint@latest
 endif
 
-all: ansible build 
+all: ansible build
 
 all_versions:
-	@printf "all_el9\nall_el8\nall_el7\nall_jammy\nall_bullseye"
+	@printf "all_el9\nall_jammy\nall_bullseye"
 
 all_el9: export BUILD_BASE=quay.io/centos/centos:stream9
 all_el9: export BUILD_BASE_TAG=centos-stream9
