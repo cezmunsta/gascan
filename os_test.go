@@ -77,3 +77,30 @@ func TestExtraction(t *testing.T) {
 		t.Fatalf("found foo.txt")
 	}
 }
+
+func TestClearCache(t *testing.T) {
+	var err error
+
+	EnvCachePaths = "~,~/"
+	tmpDir := ""
+
+	if err = clearInventoryCache(); err == nil {
+		t.Fatalf("expected an error for EnvCachePaths %q", EnvCachePaths)
+	}
+
+	if tmpDir, err = os.MkdirTemp(os.TempDir(), "cache1"); err != nil {
+		t.Fatalf("unable to create directory: %v", err)
+	}
+
+	EnvCachePaths = tmpDir
+
+	if tmpDir, err = os.MkdirTemp(os.TempDir(), "cache2"); err != nil {
+		t.Fatalf("unable to create directory: %v", err)
+	}
+
+	EnvCachePaths += "," + filepath.Join(tmpDir, "foobar*") + "," + tmpDir
+
+	if err = clearInventoryCache(); err != nil {
+		t.Fatalf("unexpected error for EnvCachePaths %q", EnvCachePaths)
+	}
+}

@@ -8,16 +8,58 @@ import (
 	"io"
 	"io/fs"
 	"os"
+	"os/user"
 	"path"
 	"path/filepath"
 	"strings"
 	"text/template"
 )
 
+// EnvCachePaths is a comma-separated set of path names, which can be configured at build time
+var EnvCachePaths string = "/tmp/.gascan/inventory.cache,~/.config/gascan/cache/gas_inventory_dynamic_inventory_plugin*"
+
 func cleanupWorkspace(path string) error {
+	Logger.Debug("cleaning path %q", path)
+
 	if err := os.RemoveAll(path); err != nil {
 		Logger.Warning("unable to remove tmpDir '%s': %v", path, err)
 		return err
+	}
+
+	return nil
+}
+
+func clearInventoryCache() error {
+	currentUser, _ := user.Current()
+	paths := strings.Split(EnvCachePaths, ",")
+
+	for i, path := range paths {
+		if path == "~" || path == "~/" {
+			return fmt.Errorf("EnvCachePaths is using ~/ as a path")
+		}
+
+		if strings.HasPrefix(path, "~/") {
+			path = filepath.Join(currentUser.HomeDir, path[2:])
+			Logger.Debug("converted path %q to %q", paths[i], path)
+		}
+
+		if strings.HasSuffix(path, "*") {
+			matches, err := filepath.Glob(path)
+			if err != nil {
+				return err
+			}
+
+			for _, m := range matches {
+				path = m
+				Logger.Debug("converted path %q to %q", paths[i], path)
+				break
+			}
+		}
+
+		if err := cleanupWorkspace(path); err != nil {
+			Logger.Warning("unable to remove %s", path)
+			return err
+		}
 	}
 
 	return nil

@@ -444,8 +444,17 @@ func main() {
 		}
 	}
 
+	if Config.ClearCache {
+		Logger.Debug("clearing the inventory cache")
+
+		if err := clearInventoryCache(); err != nil {
+			Logger.Fatal("unable to reset the cache: %v", err)
+		}
+	}
+
 	if Config.Mode&inventoryMode > 0 {
 		Logger.Debug("Requesting the inventory")
+
 		ShowInventory(ansibleConfig, []string{"--list"}...)
 		os.Exit(0)
 	}
