@@ -13,7 +13,7 @@ Go deploy tool to manage Percona Platform with Ansible
 ```sh
 Usage of gascan:
   -editor string
-        Path to preferred editor (default "vi")
+        Path to preferred editor [EDITOR] (default "/usr/bin/vim")
   -extract-bundle
         Just extract the bundle, use with --extract-path
   -extract-path string
@@ -23,25 +23,33 @@ Usage of gascan:
   -get-inventory
         Request the Ansible inventory
   -inventory string
-        Set a custom inventory
+        Set a custom inventory [ANSIBLE_INVENTORY]. A default inventory is used when empty, which can be disabled [GASCAN_DEFAULT_INVENTORY] (default "inventory.yaml")
+  -limit string
+        Limit execution to the specified hosts
+  -list-plays
+        List the available playbooks
   -log-level string
-        Set the level of logging verbosity (default "error")
+        Set the level of logging verbosity [GASCAN_FLAG_LOG_LEVEL] (default "error")
   -monitor string
         Monitor alias (default "monitor")
   -passwordless-sudo
-        The use of sudo does not require a password
+        The use of sudo does not require a password [GASCAN_FLAG_PASSWORDLESS_SUDO]
   -playbook string
-        Playbook used for deployment (default "pmm-full.yaml")
+        Playbook used for deployment [GASCAN_FLAG_PLAYBOOK] (default "pmm-full.yaml")
+  -refresh
+        Clear inventory caches to allow for a refresh
   -skip-configure
         Skip initial configuration
   -skip-deploy
         Skip deploying the monitor host
   -skip-tags string
-        Specify tags to skip for automation
+        Specify tags to skip for automation [GASCAN_FLAG_SKIP_TAGS]
   -tags string
-        Specify tags for automation
+        Specify tags for automation [GASCAN_FLAG_TAGS]
   -test
         Run the test play (ping)
+  -version
+        Show the version
 ```
 
 ### System requirements
