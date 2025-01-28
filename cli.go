@@ -54,7 +54,7 @@ func flags() {
 	Config.Mode = 0
 
 	envInventory := os.Getenv("ANSIBLE_INVENTORY")
-	envBecomePass := os.Getenv("ANSIBLE_BECOME_PASSWORD")
+	envBecomePass := os.Getenv("ANSIBLE_BECOME_PASS")
 	envBecomePassFile := os.Getenv("ANSIBLE_BECOME_PASSWORD_FILE")
 
 	envEditor := os.Getenv("EDITOR")
