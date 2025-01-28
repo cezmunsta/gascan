@@ -16,6 +16,7 @@ type Flags struct {
 	ExtractPath    string
 	GetInventory   bool
 	Inventory      string
+	LimitHosts     string
 	LogLevel       string
 	Mode           uint
 	Monitor        string
@@ -99,6 +100,7 @@ func flags() {
 	flag.StringVar(&Config.Editor, "editor", defaultEditor, "Path to preferred editor [EDITOR]")
 	flag.StringVar(&Config.ExtractPath, "extract-path", os.TempDir(), "Extract the bundle to this path, use with --extract-bundle, when TMPDIR cannot execute, etc")
 	flag.StringVar(&Config.Inventory, "inventory", envInventory, "Set a custom inventory [ANSIBLE_INVENTORY]. A default inventory is used when empty, which can be disabled [GASCAN_DEFAULT_INVENTORY]")
+	flag.StringVar(&Config.LimitHosts, "limit", "", "Limit execution to the specified hosts")
 	flag.StringVar(&Config.LogLevel, "log-level", defaultLogLevel, "Set the level of logging verbosity [GASCAN_FLAG_LOG_LEVEL]")
 	flag.StringVar(&Config.Monitor, "monitor", "monitor", "Monitor alias")
 	flag.StringVar(&Config.Playbook, "playbook", EntryPointPlaybook, "Playbook used for deployment [GASCAN_FLAG_PLAYBOOK]")

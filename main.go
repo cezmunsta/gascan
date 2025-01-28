@@ -391,11 +391,18 @@ func main() {
 	if len(Config.Tags) > 0 {
 		playArgs = append(playArgs, "--tags", Config.Tags)
 	}
+
 	if len(Config.SkipTags) > 0 {
 		playArgs = append(playArgs, "--skip-tags", Config.SkipTags)
 	}
+
 	if !Config.NoSudoPassword {
 		playArgs = append(playArgs, "--ask-become-pass")
+	}
+
+	if len(Config.LimitHosts) > 0 {
+		Logger.Debug("Limiting run to %s", Config.LimitHosts)
+		playArgs = append(playArgs, "--limit", Config.LimitHosts)
 	}
 
 	defer func() {
