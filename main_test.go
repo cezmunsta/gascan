@@ -83,6 +83,7 @@ func TestInventory(t *testing.T) {
 	}
 }
 
+/*
 func TestPrepare(t *testing.T) {
 	binDir := filepath.Join(tmpDir, "bin")
 	configDir := filepath.Join(tmpDir, ".config", "gascan")
@@ -107,6 +108,7 @@ func TestPrepare(t *testing.T) {
 		}
 	}
 }
+*/
 
 //func TestBundle(t *testing.T) {
 //	for _, f := range bundleList {

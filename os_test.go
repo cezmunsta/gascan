@@ -66,7 +66,6 @@ func TestGenerateDefaults(t *testing.T) {
 	inventory := filepath.Join(tmpDir, "temp-inventory.yaml")
 
 	generateDefaults(inventory)
-	defer os.RemoveAll(tmpDir)
 
 	if _, err := os.ReadFile(inventory); err != nil {
 		t.Fatalf("expected: content from %s, got: %v", inventory, err)
@@ -100,24 +99,25 @@ func TestClearCache(t *testing.T) {
 	var err error
 
 	EnvCachePaths = "~,~/"
-	tmpDir := ""
+	cacheDir := ""
 
 	if err = clearInventoryCache(); err == nil {
 		t.Fatalf("expected an error for EnvCachePaths %q", EnvCachePaths)
 	}
 
-	if tmpDir, err = os.MkdirTemp(os.TempDir(), "cache1"); err != nil {
+	if cacheDir, err = os.MkdirTemp(os.TempDir(), "cache1"); err != nil {
 		t.Fatalf("unable to create directory: %v", err)
 	}
 
-	EnvCachePaths = tmpDir
-	defer os.RemoveAll(tmpDir)
+	defer os.RemoveAll(cacheDir)
 
-	if tmpDir, err = os.MkdirTemp(os.TempDir(), "cache2"); err != nil {
+	EnvCachePaths = cacheDir
+
+	if cacheDir, err = os.MkdirTemp(os.TempDir(), "cache2"); err != nil {
 		t.Fatalf("unable to create directory: %v", err)
 	}
 
-	EnvCachePaths += "," + filepath.Join(tmpDir, "foobar*") + "," + tmpDir
+	EnvCachePaths += "," + filepath.Join(cacheDir, "foobar*") + "," + cacheDir
 
 	if err = clearInventoryCache(); err != nil {
 		t.Fatalf("unexpected error for EnvCachePaths %q", EnvCachePaths)
@@ -125,18 +125,18 @@ func TestClearCache(t *testing.T) {
 }
 
 func TestAnsibleConfig(t *testing.T) {
-	tmpDir := ""
+	cfgDir := ""
 
 	if td, err := os.MkdirTemp(os.TempDir(), "cfg"); err == nil {
-		tmpDir = td
+		cfgDir = td
 	} else {
 		t.Fatalf("unable to create directory: %v", err)
 	}
 
-	defer os.RemoveAll(tmpDir)
+	defer os.RemoveAll(cfgDir)
 
-	dummyCfg := filepath.Join(tmpDir, "default.cfg")
-	newCfgName := filepath.Join(tmpDir, "new.cfg")
+	dummyCfg := filepath.Join(cfgDir, "default.cfg")
+	newCfgName := filepath.Join(cfgDir, "new.cfg")
 
 	if err := os.WriteFile(dummyCfg, []byte(ansibleDummyConfig), 0o640); err != nil {
 		t.Fatalf("unable to write the dummy config: %v", err)
