@@ -13,6 +13,7 @@ type Flags struct {
 	ClearCache     bool
 	Editor         string
 	EnableGodMode  bool
+	ExtraArguments []string
 	ExtractPath    string
 	GetInventory   bool
 	Inventory      string
@@ -85,6 +86,7 @@ func flags() {
 		EntryPointPlaybook = envPlaybook
 	}
 
+	adhocModeFlag := flag.Bool("adhoc", false, "Using Ansible in adhoc mode")
 	extractOnlyFlag := flag.Bool("extract-bundle", false, "Just extract the bundle, use with --extract-path")
 	generateHashFlag := flag.Bool("generate-hash", false, "Generate a sha256 time-based hash")
 	listPlaysFlag := flag.Bool("list-plays", false, "List the available playbooks")
@@ -108,6 +110,8 @@ func flags() {
 	flag.StringVar(&Config.Tags, "tags", envTags, "Specify tags for automation [GASCAN_FLAG_TAGS]")
 
 	flag.Parse()
+
+	Config.ExtraArguments = flag.Args()
 
 	switch strings.ToLower(Config.LogLevel) {
 	case "debug":
@@ -137,7 +141,7 @@ func flags() {
 		os.Exit(0)
 	}
 
-	if !checkPlaybook(Config.Playbook) {
+	if !*adhocModeFlag && !checkPlaybook(Config.Playbook) {
 		Logger.Fatal("Playbook %s is unavailable, please use --list-plays to see what's available", Config.Playbook)
 	}
 
@@ -169,6 +173,15 @@ func flags() {
 
 	if *extractOnlyFlag {
 		Config.Mode = extractMode
+		os.Setenv("GASCAN_TEST_NOEXIT", "1")
+	}
+
+	if *adhocModeFlag {
+		if len(Config.ExtraArguments) == 0 {
+			Logger.Fatal("please specify extra arguments after -- for adhoc mode")
+		}
+
+		Config.Mode = adhocMode
 		os.Setenv("GASCAN_TEST_NOEXIT", "1")
 	}
 }

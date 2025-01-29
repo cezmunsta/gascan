@@ -2,6 +2,7 @@ package main
 
 import (
 	"archive/tar"
+	"bufio"
 	"bytes"
 	"compress/gzip"
 	"fmt"
@@ -11,6 +12,7 @@ import (
 	"os/user"
 	"path"
 	"path/filepath"
+	"slices"
 	"strings"
 	"text/template"
 )
@@ -74,12 +76,70 @@ func createWorkspace() string {
 	return tmpDir
 }
 
+func makeAbsolutePaths(sourceFileName string, newName string) string {
+	srcDir := path.Dir(sourceFileName)
+
+	if len(srcDir) == 0 {
+		Logger.Fatal("%s does not appear to be a file", sourceFileName)
+	}
+
+	srcFile, err := os.Open(sourceFileName)
+	if err != nil {
+		Logger.Fatal("%s cannot be read: %v", sourceFileName, err)
+	}
+	defer srcFile.Close()
+
+	destFile, err := os.Create(filepath.Join(srcDir, newName))
+	if err != nil {
+		Logger.Fatal("%s cannot be created: %v", newName, err)
+	}
+	defer destFile.Close()
+
+	infile := bufio.NewScanner(srcFile)
+	outfile := bufio.NewWriter(destFile)
+	homeDir := os.Getenv("HOME")
+
+	for infile.Scan() {
+		ln := infile.Text()
+
+		ln = strings.ReplaceAll(ln, "./", srcDir+"/")
+		ln = strings.ReplaceAll(ln, "~/", homeDir+"/")
+
+		if _, err := outfile.WriteString(ln + "\n"); err != nil {
+			Logger.Fatal("an unexpected error occurred writing to %s: %v", destFile.Name(), err)
+		}
+	}
+
+	outfile.Flush()
+
+	if err := infile.Err(); err != nil {
+		Logger.Fatal("an unexpected error occurred reading %s: %v", srcFile.Name(), err)
+	}
+
+	return destFile.Name()
+}
+
 // RunPlaybook via ansible-playbook
 func RunPlaybook(ansibleConfig string, args ...string) (bool, int) {
 	c := generateCommand(Ansible, args...)
 	c.Env = append(os.Environ(), "PEX_SCRIPT=ansible-playbook", fmt.Sprintf("ANSIBLE_CONFIG=%s", ansibleConfig))
 
 	Logger.Debug("Executing playbook: %s", c.Env)
+
+	if err := c.Run(); err != nil {
+		Logger.Error("failed to execute command '%s': %s", c, err)
+		return false, c.ProcessState.ExitCode()
+	}
+
+	return true, 0
+}
+
+// RunAnsible via ansible
+func RunAnsible(ansibleConfig string, args ...string) (bool, int) {
+	c := generateCommand(Ansible, args...)
+	c.Env = append(os.Environ(), "PEX_SCRIPT=ansible", fmt.Sprintf("ANSIBLE_CONFIG=%s", ansibleConfig))
+
+	Logger.Debug("Executing ansible: %s", c.Env)
 
 	if err := c.Run(); err != nil {
 		Logger.Error("failed to execute command '%s': %s", c, err)
@@ -181,6 +241,16 @@ func extractBundle(tgz []byte, targetDir string) bool {
 		}
 
 		pth := filepath.Join(targetDir, strings.Replace(hdr.Name, "automation/", "", 1))
+
+		// Skip unnecessary files
+		if Config.Mode&adhocMode > 0 {
+			pthN := strings.SplitN(pth, "/", 5)
+
+			if len(pthN) > 3 && !slices.Contains([]string{"plugins", "default.cfg"}, pthN[3]) {
+				Logger.Debug("skipping '%s' due to adhoc Mode", pth)
+				continue
+			}
+		}
 
 		switch hdr.Typeflag {
 		case tar.TypeDir:

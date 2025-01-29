@@ -9,6 +9,23 @@ import (
 	"testing"
 )
 
+const ansibleDummyConfig = `
+[defaults]
+
+callback_plugins = ./plugins/callback
+callbacks_enabled = inspect
+
+inventory = ~/.config/gascan/inventory-config.json,~/.config/gascan/secrets.yaml
+inventory_plugins = ./plugins/inventory
+
+strategy_plugins = ./plugins/strategy
+strategy = locking
+
+[inventory]
+
+enable_plugins = dynamic_inventory_plugin,yaml
+`
+
 func generateDummyTarball() ([]byte, error) {
 	var buf bytes.Buffer
 	files := []struct {
@@ -49,6 +66,7 @@ func TestGenerateDefaults(t *testing.T) {
 	inventory := filepath.Join(tmpDir, "temp-inventory.yaml")
 
 	generateDefaults(inventory)
+	defer os.RemoveAll(tmpDir)
 
 	if _, err := os.ReadFile(inventory); err != nil {
 		t.Fatalf("expected: content from %s, got: %v", inventory, err)
@@ -93,6 +111,7 @@ func TestClearCache(t *testing.T) {
 	}
 
 	EnvCachePaths = tmpDir
+	defer os.RemoveAll(tmpDir)
 
 	if tmpDir, err = os.MkdirTemp(os.TempDir(), "cache2"); err != nil {
 		t.Fatalf("unable to create directory: %v", err)
@@ -102,5 +121,34 @@ func TestClearCache(t *testing.T) {
 
 	if err = clearInventoryCache(); err != nil {
 		t.Fatalf("unexpected error for EnvCachePaths %q", EnvCachePaths)
+	}
+}
+
+func TestAnsibleConfig(t *testing.T) {
+	tmpDir := ""
+
+	if td, err := os.MkdirTemp(os.TempDir(), "cfg"); err == nil {
+		tmpDir = td
+	} else {
+		t.Fatalf("unable to create directory: %v", err)
+	}
+
+	defer os.RemoveAll(tmpDir)
+
+	dummyCfg := filepath.Join(tmpDir, "default.cfg")
+	newCfgName := filepath.Join(tmpDir, "new.cfg")
+
+	if err := os.WriteFile(dummyCfg, []byte(ansibleDummyConfig), 0o640); err != nil {
+		t.Fatalf("unable to write the dummy config: %v", err)
+	}
+
+	if newCfg := makeAbsolutePaths(dummyCfg, "new.cfg"); newCfg != newCfgName {
+		t.Fatalf("expected '%v', got '%v'", newCfgName, newCfg)
+	}
+
+	dummyCfg = newCfgName
+
+	if newContent, err := os.ReadFile(dummyCfg); err != nil || len(newContent) == 0 {
+		t.Fatalf("unable to read the new dummy config: %v", err)
 	}
 }

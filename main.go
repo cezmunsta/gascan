@@ -21,6 +21,7 @@ const (
 	testMode      uint = 8
 	extractMode   uint = 16
 	inventoryMode uint = 32
+	adhocMode     uint = 64
 
 	extractMessage string = `
 # Add the following to your shell profile:
@@ -406,6 +407,11 @@ func main() {
 	}
 
 	defer func() {
+		if Config.Mode&adhocMode > 0 {
+			isDone = true
+			exitCode = 0
+		}
+
 		if isDone {
 			cleanupWorkspace(tmpDir)
 		} else {
@@ -419,10 +425,13 @@ func main() {
 		os.Exit(exitCode)
 	}()
 
-	extractBundle(bundle, tmpDir)
 	extractToFile(Ansible, pex, 0o550)
-	extractToFile(ConnectionTool, connectTool, 0o550)
-	extractToFile(DynamicInventoryScript, dynamicInventory, 0o550)
+	extractBundle(bundle, tmpDir)
+
+	if Config.Mode&adhocMode == 0 {
+		extractToFile(ConnectionTool, connectTool, 0o550)
+		extractToFile(DynamicInventoryScript, dynamicInventory, 0o550)
+	}
 
 	if optInDefaultOn[os.Getenv("GASCAN_DEFAULT_INVENTORY")] {
 		if newPath, err := checkInventoryStatus(inventory, tmpDir); err != nil {
@@ -431,6 +440,11 @@ func main() {
 		}
 
 		playArgs = append(playArgs, "--inventory", inventory)
+	}
+
+	if Config.Mode&adhocMode > 0 {
+		a := append(playArgs, Config.ExtraArguments...)
+		isDone, exitCode = RunAnsible(ansibleConfig, a...)
 	}
 
 	if Config.Mode&extractMode > 0 {
