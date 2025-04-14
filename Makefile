@@ -37,8 +37,8 @@ VETFLAGS=( -unusedresult -bools -copylocks -framepointer -httpresponse -json -st
 
 # Tests
 DEBUG_BUILD:=$(shell test "${DEBUG}" = "1" && echo 1 || echo 0)
-INSTALL_GO_FORMATTER:=$(shell test "${GOFMT/which: no/}" = "${GOFMT}" && echo 0 || echo 1)
-INSTALL_GO_LINTER:=$(shell test "${GOLINT/which: no/}" = "${GOLINT}" && echo 0 || echo 1)
+INSTALL_GO_FORMATTER:=$(shell test "${GOFMT/not found/}" = "${GOFMT}" && echo 0 || echo 1)
+INSTALL_GO_LINTER:=$(shell test "${GOLINT/not found/}" = "${GOLINT}" && echo 0 || echo 1)
 REQUIRES_GO_LINTING:=$(shell test "$(GIT_BRANCH_FILES)" = "" && echo 0 || echo 1)
 #
 
@@ -155,7 +155,7 @@ go_generate:
 
 go_fix: export PACKAGE=./
 go_fix:
-	@"${GO}" tool fix -diff "${PACKAGE}"
+	@"${GO}" tool fix -diff -go go1.23 "${PACKAGE}"
 	@git diff --exit-code --quiet $(GIT_BRANCH_FILES)
 
 go_fmt:
