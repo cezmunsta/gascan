@@ -15,7 +15,7 @@ function build_pex {
 }
 
 function prep {
-    local -ar requirements=( "ansible==${ANSIBLE}" "jmespath" "dnspython" "pymysql" )
+    local -ar requirements=( "ansible==${ANSIBLE}" "jmespath" "dnspython" "pymysql" "zipinfo" )
     local -r extra_packages="${1}"
 
     printf "%s\n%s\n%s\n" "${requirements[@]}" > "${REQUIREMENTS}"

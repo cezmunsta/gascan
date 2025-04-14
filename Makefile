@@ -2,17 +2,18 @@
 SHELL=/bin/bash
 
 .PHONY: clean
+.PHONY: init
 .PHONY: prep
 .PHONY: test
 .PHONY: venv
 
 # Options
-ANSIBLE?=6.7.0
+ANSIBLE?=8.7.0
 ARCH?=amd64
 AUTH_FIELD_1?=Auth-Id
 AUTH_FIELD_2?=Auth-Token
 AUTH_FIELD_3?=Monitor-Name
-BUILD_BASE?=debian:bullseye
+BUILD_BASE?=debian:bookworm
 BUILD_DIR?=./build
 BUNDLE_VERSION?=$(shell git rev-parse HEAD)
 ENTRYPOINT?=pmm-full.yaml
@@ -25,7 +26,7 @@ NAME?=gascan
 OS?=linux
 PACKAGES_OS?=images/ansible/extra_packages_os.txt
 PACKAGES_PIP?=images/ansible/extra_packages_pip.txt
-PY?=3.9
+PY?=3.11
 VERSION?=$(shell git rev-parse HEAD)
 
 # Constants
@@ -36,8 +37,8 @@ VETFLAGS=( -unusedresult -bools -copylocks -framepointer -httpresponse -json -st
 
 # Tests
 DEBUG_BUILD:=$(shell test "${DEBUG}" = "1" && echo 1 || echo 0)
-INSTALL_GO_FORMATTER:=$(shell test "${GOFMT/which: no/}" = "${GOFMT}" && echo 0 || echo 1)
-INSTALL_GO_LINTER:=$(shell test "${GOLINT/which: no/}" = "${GOLINT}" && echo 0 || echo 1)
+INSTALL_GO_FORMATTER:=$(shell test "${GOFMT/not found/}" = "${GOFMT}" && echo 0 || echo 1)
+INSTALL_GO_LINTER:=$(shell test "${GOLINT/not found/}" = "${GOLINT}" && echo 0 || echo 1)
 REQUIRES_GO_LINTING:=$(shell test "$(GIT_BRANCH_FILES)" = "" && echo 0 || echo 1)
 #
 
@@ -79,6 +80,11 @@ all_bullseye: export BUILD_BASE=debian:bullseye
 all_bullseye: export BUILD_BASE_TAG=debian-bullseye
 all_bullseye: export PY=3.9
 all_bullseye: ansible build
+
+all_bookworm: export BUILD_BASE=debian:bookworm
+all_bookworm: export BUILD_BASE_TAG=debian-bookworm
+all_bookworm: export PY=3.11
+all_bookworm: ansible build
 
 ansible: ansible_image ansible_pex
 
@@ -149,7 +155,7 @@ go_generate:
 
 go_fix: export PACKAGE=./
 go_fix:
-	@"${GO}" tool fix -diff "${PACKAGE}"
+	@"${GO}" tool fix -diff -go go1.23 "${PACKAGE}"
 	@git diff --exit-code --quiet $(GIT_BRANCH_FILES)
 
 go_fmt:
