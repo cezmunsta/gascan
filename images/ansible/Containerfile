@@ -11,6 +11,8 @@ ARG ANSIBLE
 ARG BASE
 ARG PACKAGES_OS
 ARG PACKAGES_PIP
+ARG USER_NAME
+ARG USER_UID
 COPY scripts /opt/scripts
 COPY "${PACKAGES_OS}" "${PACKAGES_PIP}" /opt
 RUN /opt/scripts/ansible/init.sh "$(basename "${BASE}")" "${PACKAGES_OS}"

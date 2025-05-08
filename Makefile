@@ -27,6 +27,7 @@ OS?=linux
 PACKAGES_OS?=images/ansible/extra_packages_os.txt
 PACKAGES_PIP?=images/ansible/extra_packages_pip.txt
 PY?=3.11
+USER_NAME?=percona
 VERSION?=$(shell git rev-parse HEAD)
 
 # Constants
@@ -71,6 +72,12 @@ all_el7: export BUILD_BASE_TAG=centos-7
 all_el7: export PY=3.8
 all_el7: ansible build
 
+all_noble: export BUILD_BASE=ubuntu:noble
+all_noble: export BUILD_BASE_TAG=ubuntu-noble
+all_noble: export PY=3.12
+all_noble: export USER_NAME=ubuntu
+all_noble: ansible build
+
 all_jammy: export BUILD_BASE=ubuntu:jammy
 all_jammy: export BUILD_BASE_TAG=ubuntu-jammy
 all_jammy: export PY=3.10
@@ -92,7 +99,7 @@ ansible_image: export VNAME=${NAME}/${BUILD_BASE_TAG}-ansible:${VERSION}
 ansible_image:
 	@podman image exists "${VNAME}" && podman image rm "${VNAME}" || true
 	@buildah bud -f images/ansible/Containerfile --pull \
-	  --build-arg BASE="${BUILD_BASE}" \
+	  --build-arg BASE="${BUILD_BASE}" --build-arg USER_NAME="${USER_NAME}" \
 	  --build-arg PACKAGES_OS="${PACKAGES_OS}" --build-arg PACKAGES_PIP="${PACKAGES_PIP}" \
 	  --build-arg ANSIBLE="${ANSIBLE}" --squash --no-cache --force-rm --compress --tag "${VNAME}"
 
