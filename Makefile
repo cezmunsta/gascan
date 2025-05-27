@@ -76,6 +76,11 @@ all_jammy: export BUILD_BASE_TAG=ubuntu-jammy
 all_jammy: export PY=3.10
 all_jammy: ansible build
 
+all_noble: export BUILD_BASE=ubuntu:noble
+all_noble: export BUILD_BASE_TAG=ubuntu-noble
+all_noble: export PY=3.12
+all_noble: ansible build
+
 all_bullseye: export BUILD_BASE=debian:bullseye
 all_bullseye: export BUILD_BASE_TAG=debian-bullseye
 all_bullseye: export PY=3.9

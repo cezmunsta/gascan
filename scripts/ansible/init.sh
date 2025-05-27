@@ -12,15 +12,14 @@ declare USERNAME="${USER_NAME:-percona}"
 declare -i USERUID=${USER_UID:-1000}
 
 function setup {
-    install -o "${USERNAME}" -m 0755 -d /app
+    install -o "${USERUID}" -m 0755 -d /app
 
     case "${DISTRO}" in
         # TODO: add support for UBI - ubi, ubi-minimal, ubi-init
         ## https://developers.redhat.com/products/rhel/ubi
         "centos:stream8"|"centos:stream9") setup_redhat "${@}";;
         "centos:7") setup_redhat_legacy "${@}";;
-        "ubuntu:22.04"|"ubuntu:jammy"|"debian:bullseye"|"debian:11"|"debian:bookworm"|"debian:12") setup_debian "${@}";;
-        #"python:3.10-slim") ;;
+        "ubuntu:22.04"|"ubuntu:jammy"|"ubuntu:24.04"|"ubuntu:noble"|"debian:bullseye"|"debian:11"|"debian:bookworm"|"debian:12") setup_debian "${@}";;
         *) echo "Unsupported distro: ${DISTRO}"; exit 1
     esac
 }
