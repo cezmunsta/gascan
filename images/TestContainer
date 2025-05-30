@@ -2,6 +2,10 @@ FROM docker.io/library/debian:bookworm
 
 COPY build/gascan /usr/local/bin/gascan
 COPY images/testdata.json /tmp/data.json
+<<<<<<< Updated upstream
+=======
+COPY images/extradata.json /tmp/extradata.json
+>>>>>>> Stashed changes
 
 ENTRYPOINT ["/usr/local/bin/gascan"]
 CMD ["-help"]

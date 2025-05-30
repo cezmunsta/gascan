@@ -210,4 +210,4 @@ testimage:
 	@podman image rm gascan:testimage || true
 	@buildah build --file images/TestContainer --tag gascan:testimage --label purpose=gascan-testimage
 	@podman run --rm gascan:testimage -override a=b -override c=d -log-level debug -skip-configure -skip-deploy 2>&1 | ag map
-	@podman run --rm gascan:testimage -override @/tmp/data.json -log-level debug -skip-configure -skip-deploy 2>&1 | ag map
+	@podman run --rm gascan:testimage -override @/tmp/data.json -override @/tmp/extradata.json -log-level debug -skip-configure -skip-deploy 2>&1 | ag map
