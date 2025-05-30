@@ -201,3 +201,13 @@ venv:
 	@python3 -m venv venv
 	@venv/bin/pip install -U pip wheel
 	@venv/bin/pip install -U ansible=="${ANSIBLE}" jmespath dnspython ansible-lint
+
+testimage: export BUILD_BASE=debian:bookworm
+testimage: export BUILD_BASE_TAG=debian-bookworm
+testimage: export PY=3.11
+testimage: build
+testimage:
+	@podman image rm gascan:testimage || true
+	@buildah build --file images/TestContainer --tag gascan:testimage --label purpose=gascan-testimage
+	@podman run --rm gascan:testimage -override a=b -override c=d -log-level debug -skip-configure -skip-deploy 2>&1 | ag map
+	@podman run --rm gascan:testimage -override @/tmp/data.json -override @/tmp/extradata.json -log-level debug -skip-configure -skip-deploy 2>&1 | ag map
