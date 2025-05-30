@@ -1,6 +1,7 @@
 FROM docker.io/library/debian:bookworm
 
 COPY build/gascan /usr/local/bin/gascan
+COPY images/testdata.json /tmp/data.json
 
 ENTRYPOINT ["/usr/local/bin/gascan"]
 CMD ["-help"]
