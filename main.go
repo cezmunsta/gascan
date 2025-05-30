@@ -389,6 +389,8 @@ func main() {
 	pp := filepath.Join(tmpDir, Config.Playbook)
 	tp := filepath.Join(tmpDir, "ping.yaml")
 
+	overrides := "/tmp/overrides.json"
+
 	if len(Config.Tags) > 0 {
 		playArgs = append(playArgs, "--tags", Config.Tags)
 	}
@@ -440,6 +442,16 @@ func main() {
 		}
 
 		playArgs = append(playArgs, "--inventory", inventory)
+	}
+
+	if len(Config.ExtraVars) > 0 {
+		if buff, err := json.Marshal(Config.ExtraVars); err != nil {
+			Logger.Error("Failed to convert Config.ExtraVars to JSON: %v", err)
+		} else if err := os.WriteFile(overrides, []byte(string(buff)), 0o600); err != nil {
+			Logger.Error("Failed to write JSON to file: %v", err)
+		}
+
+		playArgs = append([]string{"--extra-vars", "@" + overrides}, playArgs...)
 	}
 
 	if Config.Mode&adhocMode > 0 {
