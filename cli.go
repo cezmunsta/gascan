@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"flag"
 	"fmt"
 	"os"
@@ -15,6 +16,7 @@ type Flags struct {
 	EnableGodMode  bool
 	ExtraArguments []string
 	ExtractPath    string
+	ExtraVars      map[string]interface{}
 	GetInventory   bool
 	Inventory      string
 	LimitHosts     string
@@ -109,6 +111,29 @@ func flags() {
 	flag.StringVar(&Config.SkipTags, "skip-tags", envSkipTags, "Specify tags to skip for automation [GASCAN_FLAG_SKIP_TAGS]")
 	flag.StringVar(&Config.Tags, "tags", envTags, "Specify tags for automation [GASCAN_FLAG_TAGS]")
 
+	Config.ExtraVars = make(map[string]interface{})
+
+	flag.Func("override", "Overrides to pass to Ansible as --extra-vars", func(s string) error {
+		vals := strings.SplitN(s, "=", 2)
+
+		if strings.HasPrefix(vals[0], "@") {
+			overrideData, err := os.ReadFile(vals[0][1:])
+			if err != nil {
+				panic(fmt.Sprintf("TBD override file read issues: %v from %s", vals, err))
+			}
+
+			if err := json.Unmarshal(overrideData, &Config.ExtraVars); err != nil {
+				panic(fmt.Sprintf("TBD override file parsing issues: %v from %s", vals, err))
+			}
+		} else if len(vals) != 2 {
+			panic(fmt.Sprintf("TBD override val too short: %v from %v", vals, s))
+		} else {
+			Config.ExtraVars[strings.TrimSpace(vals[0])] = strings.TrimSpace(vals[1])
+		}
+
+		return nil
+	})
+
 	flag.Parse()
 
 	Config.ExtraArguments = flag.Args()
@@ -130,6 +155,8 @@ func flags() {
 		Logger.Level = errorLevel
 		Logger.Prefix = "ERROR"
 	}
+
+	Logger.Debug("Passing %v as --extra-vars", Config.ExtraVars)
 
 	if *versionFlag {
 		printVersion()
